@@ -1,0 +1,4 @@
+*.txt
+*.o
+yate
+.vscode/
