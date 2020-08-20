@@ -28,16 +28,27 @@ public:
 	
 	inline void put(const char& ch) {
 		lines[carret.y].insert(carret.x, 1, ch);
+		moveRight();
 	}
 	inline void put(const std::string& str) {
 		lines[carret.y].insert(carret.x, str);
+		setCarretLocation(carret.x + str.size(), carret.y);
 	}
+	void del(bool right);
+	
+	void newLine();
 	
 	inline const std::string& getLine() const {
 		return lines[carret.y];
 	}
 	inline const std::string& getLine(size_t lineNr) const {
 		return lines[lineNr];
+	}
+	inline size_t getLineSize() const {
+		return lines[carret.y].size();
+	}
+	inline size_t getLineSize(size_t lineNr) const {
+		return lines[lineNr].size();
 	}
 	inline const std::string& getPath() const {
 		return path;
@@ -92,3 +103,10 @@ private:
 // std::istream& operator>>(const char& o);
 // std::istream& operator>>(const long& o);
 // std::istream& operator>>(const double& o);
+
+/*
+void moveUp(int n);
+void moveDown(int n);
+void moveLeft(int n);
+void moveRight(int n);
+*/

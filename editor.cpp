@@ -6,57 +6,69 @@ Editor::Editor(const std::string& filePath)
 	scrollX(0),
 	scrollY(0),
 	width(getmaxx(stdscr)), 
-	height(getmaxy(stdscr)) {
+	height(getmaxy(stdscr) - 2),
+    alive(true) {
 	
 }
 
 void Editor::draw() {
+	clear();
 	for (int lineNr = scrollY; lineNr < scrollY + height && lineNr < file.linesAmount(); lineNr++) {
-		std::string_view line { file.getLine(lineNr) };
-		move(lineNr, 0);
-		printw(line.data());
+		const std::string& line { file.getLine(lineNr) };
+		move(lineNr - scrollY, 0);
+		printw("%3d %s", lineNr + 1, line.c_str());
 	}
-	move(file.getCarretY() - scrollY, file.getCarretX() - scrollX);
+	attron(A_STANDOUT);
+	mvprintw(getmaxy(stdscr) - 1, 0, " File: %s\tRow %2d, Col %2d ", file.getFullFilename().c_str(), file.getCarretY() + 1, file.getCarretX() + 1);
+	attroff(A_STANDOUT);
+	std::string_view cursorText = file.getLine(file.getCarretY()).substr(0, file.getCarretX());
+    // move(file.getCarretY() - scrollY, file.getCarretX() - scrollX + 4);
+    mvprintw(file.getCarretY() - scrollY, 4, cursorText.data());
+    
 	refresh();
 }
 
 void Editor::getInput() {
 	int input = getch();
-	switch(input) {
-		case KEY_UP:
-			moveUp();
-		break;
-		
-		case KEY_DOWN:
-			moveDown();
-		break;
-		
-		case KEY_LEFT:
-			moveLeft();
-		break;
-		
-		case KEY_RIGHT:
-			moveRight();
-		break;
-		
-		case KEY_END:
-		break;
-		
-		case KEY_HOME:
-		break;
-		
-		case KEY_ENTER:
-		break;
-
-		case KEY_BACKSPACE:
-		break;
-		
-		default:
-			if(input >= 0 && input <= 0x7F) {
-				file.put(static_cast<char>(input));
-			}
-		break;
+	if(input >= 32 && input < 127) {
+		file.put(static_cast<char>(input));
 	}
+	else if(input == KEY_UP) {
+		moveUp();
+	}
+	else if(input == KEY_DOWN) {
+		moveDown(); 
+	}
+	else if(input == KEY_LEFT) {
+		moveLeft(); 
+	}
+	else if(input == KEY_RIGHT) {
+		moveRight(); 
+	}
+	else if(input == KEY_END || input == 3) {
+		moveEndOfLine();
+	}
+	else if(input == KEY_HOME || input == 1) {
+		moveBeginningOfLine();
+	}
+	else if(input == 2) {
+		moveBeginningOfText();
+	}
+	else if(input == 10) { // ENTER 
+		newLine();
+	}
+	else if(input == 127) { // BACKSPACE
+		deleteCharL();
+	}
+	else if(input == 330) { // DEL
+		deleteCharR();
+	}
+	else if(input == 9) { // TAB
+		file.put(static_cast<char>(input));
+	}
+    else if(input == 24) {
+        alive = false;
+    }
 }
 
 void Editor::scrollUp() {
@@ -82,7 +94,7 @@ void Editor::moveUp() {
 	file.moveUp();
 }
 void Editor::moveDown() {
-	if((scrollY + height) - file.getCarretY() == 0)
+	if((scrollY + height) - file.getCarretY() - 1 == 0)
 		scrollDown();
 	file.moveDown();
 }
@@ -95,4 +107,32 @@ void Editor::moveRight() {
 	if(file.getCarretX() > 0) 
 		scrollRight();
 	file.moveRight();
+}
+
+void Editor::moveBeginningOfLine() {
+	file.setCarretLocation(0, file.getCarretY());
+}
+void Editor::moveBeginningOfText() {
+	file.setCarretLocation(0, file.getCarretY());
+	while(file.getLine()[file.getCarretX()] == ' ' || file.getLine()[file.getCarretX()] == '\t' ) {
+		file.moveRight();
+	}
+}
+void Editor::moveEndOfLine() {
+	file.setCarretLocation(file.getLineSize(), file.getCarretY());
+}
+void Editor::newLine() {
+	file.newLine();
+    moveDown();
+	file.setCarretLocation(0, file.getCarretY());
+
+}
+void Editor::deleteCharL() {
+	file.del(false);
+    if(file.getCarretY() - scrollY < 0) {
+        scrollY--;
+    }
+}
+void Editor::deleteCharR() {
+	file.del(true);
 }

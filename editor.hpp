@@ -20,8 +20,22 @@ public:
 	void moveDown();
 	void moveLeft();
 	void moveRight();
-		
+
+	void moveBeginningOfLine();
+    void moveBeginningOfText();
+	void moveEndOfLine();
+    void newLine();
+	void deleteCharL();
+    void deleteCharR();
 	
+    inline bool isAlive() {
+        return alive;
+    }
+    
+    inline void saveFile() {
+        file.save();
+    }
+    
 private:
 	int scrollX;
 	int scrollY;
@@ -29,6 +43,8 @@ private:
 	int height;
 	
 	FileEditor file;
+    
+    bool alive;
 };
 
 #endif
