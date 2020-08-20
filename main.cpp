@@ -5,8 +5,7 @@
 
 /********************************
  * Todo:						*
- * Finish new line, delete etc 	*
- * Handle most user input		*
+ * Fix Tab movement 			*
  ********************************/
 
 int main(int argc, char** argv) {
