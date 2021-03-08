@@ -18,10 +18,11 @@ FileEditor::FileEditor(const std::string& path)
 	filename = fullFilename.substr(0, fullFilename.find('.'));
 	extension = fullFilename.substr(filename.size());
 	std::ifstream file {path};
-	while(file)
+	while(true)
 	{
 		std::string line{""};
 		std::getline(file, line);
+        if(!file) break;
 		lines.push_back(line);
 	}
 }
