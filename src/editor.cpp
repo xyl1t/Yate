@@ -19,8 +19,7 @@ Editor::Editor(const std::string& filePath)
 	initColorPairs();
 
 	// NOTE: Define your statuses here:
-	addSimpleStatus("saved", "File: \'" + file.getPath() + "\'\twas saved.");
-
+	addSimpleStatus("saved", " File: \'" + file.getFullFilename() + "\'\twas saved. ");
 }
 
 void Editor::draw() {
@@ -37,7 +36,7 @@ void Editor::draw() {
 	if (this->standard_status) {
 		mvprintw(getmaxy(stdscr) - 1, 0, " File: %s\tRow %2d, Col %2d ", file.getFullFilename().c_str(), file.getCarretY() + 1, file.getCarretX() + 1);
 	} else {
-		mvprintw(getmaxy(stdscr) - 1, 0, this->statuses.extract(this->name_of_status).mapped().c_str());
+		mvprintw(getmaxy(stdscr) - 1, 0, this->statuses[this->name_of_status].c_str());
 	}
 
 	attroff(COLOR_PAIR(this->colorPair));
@@ -187,7 +186,7 @@ void Editor::initColorPairs() {
 	init_pair(PAIR_ERROR, COLOR_RED, COLOR_BLACK);
 	init_pair(PAIR_STANDARD, COLOR_WHITE, COLOR_BLACK);
 	init_pair(PAIR_WARNING, COLOR_YELLOW, COLOR_BLACK);
-	init_pair(PAIR_INFO, COLOR_BLUE, COLOR_BLACK);
+	init_pair(PAIR_INFO, COLOR_WHITE, COLOR_BLUE);
 }
 
 // Enables color pair provided by parameter in the status bar

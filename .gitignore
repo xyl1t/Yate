@@ -1,4 +1,5 @@
-*.txt
-*.o
-yate
 .vscode/
+build/
+*.txt
+!CMakeLists.txt
+Makefile
