@@ -22,7 +22,6 @@ void Editor::draw() {
 	mvprintw(getmaxy(stdscr) - 1, 0, " File: %s\tRow %2d, Col %2d ", file.getFullFilename().c_str(), file.getCarretY() + 1, file.getCarretX() + 1);
 	attroff(A_STANDOUT);
 	std::string_view cursorText = file.getLine(file.getCarretY()).substr(0, file.getCarretX());
-    // move(file.getCarretY() - scrollY, file.getCarretX() - scrollX + 4);
     mvprintw(file.getCarretY() - scrollY, 4, cursorText.data());
     
 	refresh();
@@ -30,7 +29,7 @@ void Editor::draw() {
 
 void Editor::getInput() {
 	int input = getch();
-	if(input >= 32 && input < 127) {
+	if(input >= 32 && input < 127 && input != 3) {
 		file.put(static_cast<char>(input));
 	}
 	else if(input == KEY_UP) {
@@ -43,9 +42,9 @@ void Editor::getInput() {
 		moveLeft(); 
 	}
 	else if(input == KEY_RIGHT) {
-		moveRight(); 
+		moveRight();
 	}
-	else if(input == KEY_END || input == 3) {
+	else if(input == KEY_END) {
 		moveEndOfLine();
 	}
 	else if(input == KEY_HOME || input == 1) {
@@ -57,7 +56,7 @@ void Editor::getInput() {
 	else if(input == 10) { // ENTER 
 		newLine();
 	}
-	else if(input == 127) { // BACKSPACE
+	else if(input == KEY_BACKSPACE || input == 127) { // BACKSPACE
 		deleteCharL();
 	}
 	else if(input == 330) { // DEL
@@ -65,10 +64,18 @@ void Editor::getInput() {
 	}
 	else if(input == 9) { // TAB
 		file.put(static_cast<char>(input));
+    } else if(input == 19) {
+		file.save();
+		file.close();
+		endwin();
+		printf("Successfully written changes and saved %s.\n", file.getPath().c_str());
+		exit(0);
+	} else if(input == 3) {
+		file.close();
+		endwin();
+		printf("No changes has been made to the file.\n");
+		exit(0);
 	}
-    else if(input == 24) {
-        alive = false;
-    }
 }
 
 void Editor::scrollUp() {
