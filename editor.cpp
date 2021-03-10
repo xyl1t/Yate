@@ -1,5 +1,12 @@
 #include "editor.hpp"
 #include <ncurses.h>
+#include <unordered_map>
+
+// Color pairs defines:
+#define PAIR_STANDART 1
+#define PAIR_ERROR 2
+#define PAIR_WARNING 3
+#define PAIR_INFO 4
 
 Editor::Editor(const std::string& filePath) 
 	: file(filePath), 
@@ -8,7 +15,12 @@ Editor::Editor(const std::string& filePath)
 	width(getmaxx(stdscr)), 
 	height(getmaxy(stdscr) - 2),
     alive(true) {
-	
+
+	initColorPairs();
+
+	// NOTE: Define your statuses here:
+	addSimpleStatus("saved", "File: \'" + file.getPath() + "\'\twas saved.");
+
 }
 
 void Editor::draw() {
@@ -18,17 +30,32 @@ void Editor::draw() {
 		move(lineNr - scrollY, 0);
 		printw("%3d %s", lineNr + 1, line.c_str());
 	}
+
 	attron(A_STANDOUT);
-	mvprintw(getmaxy(stdscr) - 1, 0, " File: %s\tRow %2d, Col %2d ", file.getFullFilename().c_str(), file.getCarretY() + 1, file.getCarretX() + 1);
+	attron(COLOR_PAIR(this->colorPair));
+
+	if (this->standart) {
+		mvprintw(getmaxy(stdscr) - 1, 0, " File: %s\tRow %2d, Col %2d ", file.getFullFilename().c_str(), file.getCarretY() + 1, file.getCarretX() + 1);
+	} else {
+		mvprintw(getmaxy(stdscr) - 1, 0, this->statuses.extract(this->custom).mapped().c_str());
+	}
+
+	attroff(COLOR_PAIR(this->colorPair));
+	// Reset color pair:
+	this->colorPair = PAIR_STANDART;
 	attroff(A_STANDOUT);
+
 	std::string cursorText = file.getLine(file.getCarretY()).substr(0, file.getCarretX());
     mvprintw(file.getCarretY() - scrollY, 4, cursorText.c_str());
-    
 	refresh();
 }
 
 void Editor::getInput() {
 	int input = getch();
+
+	// Reset status, if input recieved
+	this->standart = true;
+
 	if(input >= 32 && input < 127) {
 		file.put(static_cast<char>(input));
 	}
@@ -65,10 +92,11 @@ void Editor::getInput() {
 	}
 	else if(input == 9 || input == KEY_STAB) { // TAB
 		file.put(static_cast<char>(input));
-    } else if(input == 19) {
-		// TODO: Inform the user that file has been saved
+    } else if(input == 19) { // Ctrl-S
+		enableSimpleStatus("saved");
+		applyColorPairToStatusBar(PAIR_INFO);
 		file.save();
-	} else if(input == 3) {
+	} else if(input == 3) { // Ctrl-C
 		file.close();
 		// NOTE: Maybe instead of exiting without saving, ask the user if he wants to save
 		printf("No changes has been made to the file.\n");
@@ -141,4 +169,28 @@ void Editor::deleteCharL() {
 }
 void Editor::deleteCharR() {
 	file.del(true);
+}
+
+// Adds simple status, that can be later enabled with enableSimpleStatus(), dissaprears on character input
+void Editor::addSimpleStatus(const std::string& name, const std::string& status_message) {
+	this->statuses.insert({name, status_message});
+}
+
+// Enables status, that was defined with addSimpleStatus()
+void Editor::enableSimpleStatus(const std::string& name) {
+	this->standart = false;
+	this->custom = name;
+}
+
+// Defines color pairs
+void Editor::initColorPairs() {
+	init_pair(PAIR_ERROR, COLOR_RED, COLOR_BLACK);
+	init_pair(PAIR_STANDART, COLOR_WHITE, COLOR_BLACK);
+	init_pair(PAIR_WARNING, COLOR_YELLOW, COLOR_BLACK);
+	init_pair(PAIR_INFO, COLOR_BLUE, COLOR_BLACK);
+}
+
+// Enables color pair provided by parameter in the status bar
+void Editor::applyColorPairToStatusBar(const int& colorPair) {
+	this->colorPair = colorPair;
 }

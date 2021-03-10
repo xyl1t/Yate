@@ -1,7 +1,6 @@
 #include <ncurses.h>
 #include "fileEditor.hpp"
 #include "editor.hpp"
-// #include <iostream>
 
 /********************************
  * Todo:						*
@@ -15,6 +14,7 @@ int main(int argc, char** argv) {
 	}
 	
 	initscr();
+	start_color();
 	raw();
 	refresh();
 	noecho();
