@@ -3,5 +3,3 @@ build/
 *.txt
 !CMakeLists.txt
 Makefile
-yate
-*.o
