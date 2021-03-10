@@ -15,18 +15,10 @@ int main(int argc, char** argv) {
 	}
 	
 	initscr();
+	raw();
 	refresh();
 	noecho();
-
 	keypad(stdscr, true);
-
-	// raw();
-	// int input;
-	// while((input = getch()) != 'g'){
-	// 	printw("%d %c\n", input, input);	
-	// }
-	// endwin();
-	// return 0;
 	
 	Editor editor { path };
 	

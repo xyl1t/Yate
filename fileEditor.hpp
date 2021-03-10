@@ -88,25 +88,3 @@ private:
 };
 
 #endif
-
-
-
-
-
-// std::ostream& operator<<(const FileEditor& o);
-// std::ostream& operator<<(const char& o);
-// std::ostream& operator<<(const long& o);
-// std::ostream& operator<<(const double& o);
-
-// std::istream& operator>>(const FileEditor& o);
-// std::istream& operator>>(const std::string& o);
-// std::istream& operator>>(const char& o);
-// std::istream& operator>>(const long& o);
-// std::istream& operator>>(const double& o);
-
-/*
-void moveUp(int n);
-void moveDown(int n);
-void moveLeft(int n);
-void moveRight(int n);
-*/

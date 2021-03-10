@@ -2,6 +2,20 @@
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
+#include <bitset>
+#include <filesystem>
+namespace  fs = std::filesystem;
+#include <ncurses.h>
+
+// If windows, include windows API.
+#ifdef _WIN32
+#include "Windows.h"
+#endif
+// If linux, include linux's system library.
+#ifdef __linux__
+#include <unistd.h>
+#include <sys/stat.h>
+#endif
 
 FileEditor::FileEditor(const std::string& path) 
 	: carret{}, 
@@ -14,17 +28,52 @@ FileEditor::FileEditor(const std::string& path)
 		fullFilename += path[i];
 		if(path[i + 1] == '/' || path[i + 1] == '\\') break;
 	}
+	#ifdef __linux__
+	struct stat file_stat;
+	stat(path.c_str(), &file_stat);
+	uid_t current_uid = getuid();
+	gid_t current_gid = getgid();
+
+	// TODO: Those are just ugly warnings, it would be better to get temporary file from buffer and open it.
+
+	fs::perms active_perms = fs::status(path).permissions();
+	if (
+		!((active_perms & fs::perms::owner_read) != fs::perms::none && file_stat.st_uid == current_uid) &&
+		!((active_perms & fs::perms::group_read) != fs::perms::none && file_stat.st_gid == current_gid) &&
+		!((active_perms & fs::perms::others_read) != fs::perms::none)
+	) {
+		endwin();
+		printf("Can't read the file, not enough permissions!\n");
+		exit(1);
+	}
+	if (
+		!((active_perms & fs::perms::owner_write) != fs::perms::none && file_stat.st_uid == current_uid) &&
+		!((active_perms & fs::perms::group_write) != fs::perms::none && file_stat.st_gid == current_gid) &&
+		!((active_perms & fs::perms::others_write) != fs::perms::none)
+	) {
+		endwin();
+		printf("Can't write to the file, not enough permissions!\n");
+		exit(1);
+	}
+	#endif
 	std::reverse(fullFilename.begin(), fullFilename.end());
 	filename = fullFilename.substr(0, fullFilename.find('.'));
 	extension = fullFilename.substr(filename.size());
 	std::ifstream file {path};
-	while(true)
+	if (!file) {
+		endwin();
+		printf("No file specified.\n");
+		exit(1);
+	}
+	while(file)
 	{
 		std::string line{""};
 		std::getline(file, line);
         if(!file) break;
 		lines.push_back(line);
 	}
+
+	// TODO: File checking is applying only to linux systems, need to implement this on mac os and windows.
 }
 
 void FileEditor::moveUp() {
@@ -103,16 +152,6 @@ void FileEditor::del(bool right) {
 			moveLeft();
 		}
 	}
-	// if(carret.x == 0) {
-	// 	int lineNr = carret.y;
-	// 	std::string line;
-	// 	moveLeft();
-	// 	if(lines[lineNr].size() == 0) {
-	// 		std::string line = lines[lineNr];
-	// 		lines.erase(lines.begin() + lineNr);
-	// 		lines[lineNr - 1].append(line);
-	// 	}
-	// }
 }
 
 void FileEditor::save() {
@@ -125,64 +164,3 @@ void FileEditor::close() {
 	lines.clear();
 	lines.shrink_to_fit();
 }
-
-/*
-
-void FileEditor::moveUp(int n) {
-	if(carret.y - n >= 0) {
-		carret.y -= n;
-		if(lines[carret.y].size() < carret.maxX)
-			carret.x = lines[carret.y].size();
-		else
-			carret.x = carret.maxX;
-	}
-	else if(carret.y - n < 0) {
-		carret.y = 0;
-		carret.x = carret.maxX = 0;
-	}
-}
-void FileEditor::moveDown(int n) {
-	if(carret.y + n < lines.size() - 1 + n) {
-		carret.y += n;
-		if(lines[carret.y].size() < carret.maxX) 
-			carret.x = lines[carret.y].size();
-		else 
-			carret.x = carret.maxX;
-	}
-	else if(carret.y + n >= lines.size() - 1) {
-		carret.y = lines.size() - 1;
-		carret.x = carret.maxX = lines[lines.size() - 1].size();
-	}
-}
-void FileEditor::moveLeft(int n) {
-	for(int i = 0; i < n; i++) {
-		if(carret.x > 0) {
-			carret.x = carret.maxX = carret.x - 1;
-		} 
-		else if(carret.y > 0) {
-			carret.y--;
-			carret.x = carret.maxX = lines[carret.y].size();
-		}
-	}
-}
-void FileEditor::moveRight(int n) {
-	for(int i = 0; i < n; i++) {
-		if(carret.x < lines[carret.y].size()) {
-			carret.x = carret.maxX = carret.x + 1;
-		} 
-		else if(carret.y < lines.size() - 1) {
-			carret.y++;
-			carret.x = carret.maxX = 0;
-		}
-	}
-}
-*/
-
-// std::ostream& operator<<(const FileEditor& o);
-// std::ostream& FileEditor::operator<<(const std::string& o) {
-// 	textStream << o;
-// 	return textStream;
-// }
-// std::ostream& operator<<(const char& o);
-// std::ostream& operator<<(const long& o);
-// std::ostream& operator<<(const double& o);
