@@ -21,15 +21,15 @@ void Editor::draw() {
 	attron(A_STANDOUT);
 	mvprintw(getmaxy(stdscr) - 1, 0, " File: %s\tRow %2d, Col %2d ", file.getFullFilename().c_str(), file.getCarretY() + 1, file.getCarretX() + 1);
 	attroff(A_STANDOUT);
-	std::string_view cursorText = file.getLine(file.getCarretY()).substr(0, file.getCarretX());
-    mvprintw(file.getCarretY() - scrollY, 4, cursorText.data());
+	std::string cursorText = file.getLine(file.getCarretY()).substr(0, file.getCarretX());
+    mvprintw(file.getCarretY() - scrollY, 4, cursorText.c_str());
     
 	refresh();
 }
 
 void Editor::getInput() {
 	int input = getch();
-	if(input >= 32 && input < 127 && input != 3) {
+	if(input >= 32 && input < 127) {
 		file.put(static_cast<char>(input));
 	}
 	else if(input == KEY_UP) {
@@ -53,27 +53,26 @@ void Editor::getInput() {
 	else if(input == 2) {
 		moveBeginningOfText();
 	}
-	else if(input == 10) { // ENTER 
+	else if(input == KEY_ENTER || input == 10) { // ENTER 
 		newLine();
 	}
 	else if(input == KEY_BACKSPACE || input == 127) { // BACKSPACE
 		deleteCharL();
 	}
-	else if(input == 330) { // DEL
+	// NOTE: let's do both KEY_DL and KEY_DC to be safe (famous last words)
+	else if(input == 330 || input == KEY_DL || input == KEY_DC) { // DEL
 		deleteCharR();
 	}
-	else if(input == 9) { // TAB
+	else if(input == 9 || input == KEY_STAB) { // TAB
 		file.put(static_cast<char>(input));
     } else if(input == 19) {
+		// TODO: Inform the user that file has been saved
 		file.save();
-		file.close();
-		endwin();
-		printf("Successfully written changes and saved %s.\n", file.getPath().c_str());
-		exit(0);
 	} else if(input == 3) {
 		file.close();
-		endwin();
+		// NOTE: Maybe instead of exiting without saving, ask the user if he wants to save
 		printf("No changes has been made to the file.\n");
+		endwin();
 		exit(0);
 	}
 }

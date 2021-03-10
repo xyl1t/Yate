@@ -63,6 +63,10 @@ FileEditor::FileEditor(const std::string& path)
 	if (!file) {
 		endwin();
 		printf("No file specified.\n");
+		std::cerr << "Error bits are: "
+			<< "\nfailbit: " << file.fail() 
+			<< "\neofbit: " << file.eof()
+			<< "\nbadbit: " << file.bad() << std::endl;  
 		exit(1);
 	}
 	while(file)
