@@ -38,15 +38,6 @@ public:
     inline bool isAlive() {
         return alive;
     }
-
-	std::unordered_map<std::string, std::string> statuses;
-
-	// Status control variables:
-	bool standard_status{true};
-	std::string name_of_status{""};
-
-	// Color control variable:
-	int colorPair{1};
     
     inline void saveFile() {
         file.save();
@@ -61,6 +52,15 @@ private:
 	FileEditor file;
     
     bool alive;
+
+	std::unordered_map<std::string, std::string> statuses;
+
+	// Status control variables:
+	bool standard_status{true};
+	std::string name_of_status{""};
+
+	// Color control variable:
+	int colorPair{1};
 };
 
 #endif
