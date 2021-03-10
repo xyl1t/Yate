@@ -3,7 +3,7 @@
 #include <unordered_map>
 
 // Color pairs defines:
-#define PAIR_STANDART 1
+#define PAIR_STANDARD 1
 #define PAIR_ERROR 2
 #define PAIR_WARNING 3
 #define PAIR_INFO 4
@@ -34,15 +34,15 @@ void Editor::draw() {
 	attron(A_STANDOUT);
 	attron(COLOR_PAIR(this->colorPair));
 
-	if (this->standart) {
+	if (this->standard_status) {
 		mvprintw(getmaxy(stdscr) - 1, 0, " File: %s\tRow %2d, Col %2d ", file.getFullFilename().c_str(), file.getCarretY() + 1, file.getCarretX() + 1);
 	} else {
-		mvprintw(getmaxy(stdscr) - 1, 0, this->statuses.extract(this->custom).mapped().c_str());
+		mvprintw(getmaxy(stdscr) - 1, 0, this->statuses.extract(this->name_of_status).mapped().c_str());
 	}
 
 	attroff(COLOR_PAIR(this->colorPair));
 	// Reset color pair:
-	this->colorPair = PAIR_STANDART;
+	this->colorPair = PAIR_STANDARD;
 	attroff(A_STANDOUT);
 
 	std::string cursorText = file.getLine(file.getCarretY()).substr(0, file.getCarretX());
@@ -54,7 +54,7 @@ void Editor::getInput() {
 	int input = getch();
 
 	// Reset status, if input recieved
-	this->standart = true;
+	this->standard_status = true;
 
 	if(input >= 32 && input < 127) {
 		file.put(static_cast<char>(input));
@@ -178,14 +178,14 @@ void Editor::addSimpleStatus(const std::string& name, const std::string& status_
 
 // Enables status, that was defined with addSimpleStatus()
 void Editor::enableSimpleStatus(const std::string& name) {
-	this->standart = false;
-	this->custom = name;
+	this->standard_status = false;
+	this->name_of_status = name;
 }
 
 // Defines color pairs
 void Editor::initColorPairs() {
 	init_pair(PAIR_ERROR, COLOR_RED, COLOR_BLACK);
-	init_pair(PAIR_STANDART, COLOR_WHITE, COLOR_BLACK);
+	init_pair(PAIR_STANDARD, COLOR_WHITE, COLOR_BLACK);
 	init_pair(PAIR_WARNING, COLOR_YELLOW, COLOR_BLACK);
 	init_pair(PAIR_INFO, COLOR_BLUE, COLOR_BLACK);
 }

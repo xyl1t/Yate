@@ -29,7 +29,6 @@ public:
 	void deleteCharL();
     void deleteCharR();
 	
-	void resetStatus();
 	void addSimpleStatus(const std::string& name, const std::string& status_message);
 	void enableSimpleStatus(const std::string& name);
 
@@ -43,8 +42,8 @@ public:
 	std::unordered_map<std::string, std::string> statuses;
 
 	// Status control variables:
-	bool standart{true};
-	std::string custom{""};
+	bool standard_status{true};
+	std::string name_of_status{""};
 
 	// Color control variable:
 	int colorPair{1};
