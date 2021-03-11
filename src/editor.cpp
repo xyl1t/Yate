@@ -177,18 +177,14 @@ void Editor::deleteCharL() {
 }
 void Editor::deleteCharR() {
 	try{
-		if (!(file.getCarretY() == file.linesAmount()) && file.getLineSize() > 1) {
-			file.del(true);
-		} else {
-			file.del(false);
-		} 
+		file.del(true);
 	} catch(std::string e) {
 		printColoredStatus(e, PAIR_ERROR);
 	}
 }
 
 // Reworked, more clean, status function
-void Editor::printColoredStatus(const std::string& message, const int& colorPair) {
+void Editor::printColoredStatus(const std::string& message, int colorPair) {
 	this->custom_message = message;
 	this->standard_status = false;
 	this->colorPair = colorPair;
