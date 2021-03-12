@@ -99,8 +99,6 @@ void Editor::getInput() {
 		endwin();
 		exit(0);
 	}
-
-	file.countCurrentLineTabs();
 }
 
 void Editor::scrollUp() {
