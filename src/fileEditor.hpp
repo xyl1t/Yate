@@ -76,15 +76,19 @@ public:
 	void save();
 	void close();
 	
-	// std::iostream& operator<<(const std::string& o);
+	inline bool hasWritePermission() const {
+		return writePermission;
+	}
+
 	
 private:
 	Carret carret;
-	const std::string& path;
+	std::string path;
 	std::string fullFilename;
 	std::string filename;
 	std::string extension;
 	std::vector<std::string> lines;
+	bool writePermission{true};
 };
 
 #endif

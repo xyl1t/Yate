@@ -19,14 +19,24 @@ namespace  fs = std::filesystem;
 
 FileEditor::FileEditor(const std::string& path) 
 	: carret{}, 
-	path{path}, 
+	path{path},
 	lines{},
 	fullFilename {},
 	filename {},
 	extension {} {
-	for (int i = path.size() - 1; i >= 0; i--) {
-		fullFilename += path[i];
-		if(path[i + 1] == '/' || path[i + 1] == '\\') break;
+	if (path != "") {
+		fs::path temp = fs::path{path};
+		std::string path;
+		path = fs::absolute(temp).string();
+		this->path = path;
+		for (int i = path.size() - 1; i >= 0; i--) {
+			if(path[i] == '/' || path[i] == '\\') break;
+			fullFilename += path[i];
+		}
+	} else {
+		endwin();
+		std::cout << ("No file was supplied.\n");
+		exit(1);
 	}
 	#ifdef __linux__
 	struct stat file_stat;
@@ -43,7 +53,7 @@ FileEditor::FileEditor(const std::string& path)
 		!((active_perms & fs::perms::others_read) != fs::perms::none)
 	) {
 		endwin();
-		printf("Can't read the file, not enough permissions!\n");
+		std::cout << "Can't edit " << fullFilename << " not enough permissions. ";
 		exit(1);
 	}
 	if (
@@ -51,9 +61,7 @@ FileEditor::FileEditor(const std::string& path)
 		!((active_perms & fs::perms::group_write) != fs::perms::none && file_stat.st_gid == current_gid) &&
 		!((active_perms & fs::perms::others_write) != fs::perms::none)
 	) {
-		endwin();
-		printf("Can't write to the file, not enough permissions!\n");
-		exit(1);
+		this->writePermission = false;
 	}
 	#endif
 	std::reverse(fullFilename.begin(), fullFilename.end());
@@ -62,7 +70,7 @@ FileEditor::FileEditor(const std::string& path)
 	std::ifstream file {path};
 	if (!file) {
 		endwin();
-		printf("No file specified.\n");
+		std::cout << "Error occured while trying to open " << fullFilename << ".\n";
 		std::cerr << "Error bits are: "
 			<< "\nfailbit: " << file.fail() 
 			<< "\neofbit: " << file.eof()
@@ -83,8 +91,9 @@ FileEditor::FileEditor(const std::string& path)
 void FileEditor::moveUp() {
 	if(carret.y - 1 >= 0) {
 		carret.y -= 1;
-		if(lines[carret.y].size() < carret.maxX)
+		if(lines[carret.y].size() < carret.maxX) {
 			carret.x = lines[carret.y].size();
+		}
 		else
 			carret.x = carret.maxX;
 	}

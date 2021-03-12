@@ -21,6 +21,7 @@ public:
 	void moveLeft();
 	void moveRight();
 
+	void save();
 	void moveBeginningOfLine();
     void moveBeginningOfText();
 	void moveEndOfLine();
