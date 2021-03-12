@@ -16,7 +16,7 @@ Editor::Editor(const std::string& filePath)
 	height(getmaxy(stdscr) - 2),
     alive(true) {
 
-	if (file.canWrite() != true) {
+	if (!file.hasWritePermission()) {
 		setColoredStatus(" File " + file.getFullFilename() + " is unwritable. ", PAIR_WARNING);
 	}
 	initColorPairs();
@@ -92,18 +92,15 @@ void Editor::getInput() {
 	else if(input == 9 || input == KEY_STAB) { // TAB
 		file.put(static_cast<char>(input));
     } else if(input == 19) { // Ctrl-S
-		if (!file.canWrite()) {
-			setColoredStatus(" File:  " + file.getFullFilename() + " is unwriteable. ", PAIR_ERROR);
-		} else {
-			setColoredStatus(" File: " + file.getFullFilename() + " has been saved. ", PAIR_INFO);
-			file.save();
-		}
+		save();
 	} else if(input == 3) { // Ctrl-C
 		file.close();
 		// NOTE: Maybe instead of exiting without saving, ask the user if he wants to save
 		endwin();
 		exit(0);
 	}
+
+	file.countCurrentLineTabs();
 }
 
 void Editor::scrollUp() {
@@ -177,6 +174,15 @@ void Editor::deleteCharR() {
 		file.del(true);
 	} catch(std::string e) {
 		setColoredStatus(e, PAIR_ERROR);
+	}
+}
+
+void Editor::save() {
+	if (!file.hasWritePermission()) {
+		setColoredStatus(" File:  " + file.getFullFilename() + " is unwritable. ", PAIR_ERROR);
+	} else {
+		setColoredStatus(" File: " + file.getFullFilename() + " has been saved. ", PAIR_INFO);
+		file.save();
 	}
 }
 

@@ -14,7 +14,7 @@ struct Carret {
 
 class FileEditor {
 public: 
-	FileEditor(std::string path);
+	FileEditor(const std::string& path);
 	
 	inline void setCarretLocation(size_t x, size_t y) {
 		carret.y = (y > lines.size()) ? lines.size() - 1 : y;
@@ -76,8 +76,8 @@ public:
 	void save();
 	void close();
 	
-	inline bool canWrite() const {
-		return can_write;
+	inline bool hasWritePermission() const {
+		return writePermission;
 	}
 
 	
@@ -88,7 +88,7 @@ private:
 	std::string filename;
 	std::string extension;
 	std::vector<std::string> lines;
-	bool can_write{true};
+	bool writePermission{true};
 };
 
 #endif
