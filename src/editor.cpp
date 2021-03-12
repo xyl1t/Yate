@@ -16,6 +16,9 @@ Editor::Editor(const std::string& filePath)
 	height(getmaxy(stdscr) - 2),
     alive(true) {
 
+	if (file.canWrite() != true) {
+		setColoredStatus(" File " + file.getFullFilename() + " is unwritable. ", PAIR_WARNING);
+	}
 	initColorPairs();
 }
 
@@ -89,8 +92,12 @@ void Editor::getInput() {
 	else if(input == 9 || input == KEY_STAB) { // TAB
 		file.put(static_cast<char>(input));
     } else if(input == 19) { // Ctrl-S
-		setColoredStatus(" File: " + file.getFullFilename() + " has been saved. ", PAIR_INFO);
-		file.save();
+		if (!file.canWrite()) {
+			setColoredStatus(" File:  " + file.getFullFilename() + " is unwriteable. ", PAIR_ERROR);
+		} else {
+			setColoredStatus(" File: " + file.getFullFilename() + " has been saved. ", PAIR_INFO);
+			file.save();
+		}
 	} else if(input == 3) { // Ctrl-C
 		file.close();
 		// NOTE: Maybe instead of exiting without saving, ask the user if he wants to save

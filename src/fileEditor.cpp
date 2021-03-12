@@ -17,16 +17,20 @@ namespace  fs = std::filesystem;
 #include <sys/stat.h>
 #endif
 
-FileEditor::FileEditor(const std::string& path) 
+FileEditor::FileEditor(std::string path) 
 	: carret{}, 
-	path{path}, 
+	path{path},
 	lines{},
 	fullFilename {},
 	filename {},
 	extension {} {
+	fs::path temp = fs::path{path};
+	if (!temp.is_absolute()) {
+		path = fs::absolute(temp).string();
+	}
 	for (int i = path.size() - 1; i >= 0; i--) {
+		if(path[i] == '/' || path[i] == '\\') break;
 		fullFilename += path[i];
-		if(path[i + 1] == '/' || path[i + 1] == '\\') break;
 	}
 	#ifdef __linux__
 	struct stat file_stat;
@@ -51,9 +55,7 @@ FileEditor::FileEditor(const std::string& path)
 		!((active_perms & fs::perms::group_write) != fs::perms::none && file_stat.st_gid == current_gid) &&
 		!((active_perms & fs::perms::others_write) != fs::perms::none)
 	) {
-		endwin();
-		printf("Can't write to the file, not enough permissions!\n");
-		exit(1);
+		this->can_write = false;
 	}
 	#endif
 	std::reverse(fullFilename.begin(), fullFilename.end());
@@ -62,7 +64,7 @@ FileEditor::FileEditor(const std::string& path)
 	std::ifstream file {path};
 	if (!file) {
 		endwin();
-		printf("No file specified.\n");
+		printf("Error has occured while opening a file.\n");
 		std::cerr << "Error bits are: "
 			<< "\nfailbit: " << file.fail() 
 			<< "\neofbit: " << file.eof()
