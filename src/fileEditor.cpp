@@ -53,7 +53,7 @@ FileEditor::FileEditor(const std::string& path)
 		!((active_perms & fs::perms::others_read) != fs::perms::none)
 	) {
 		endwin();
-		std::cout << (std::string("Can't edit " + fullFilename + " not enough permissions. ").c_str());
+		std::cout << "Can't edit " << fullFilename << " not enough permissions. ";
 		exit(1);
 	}
 	if (
@@ -70,7 +70,7 @@ FileEditor::FileEditor(const std::string& path)
 	std::ifstream file {path};
 	if (!file) {
 		endwin();
-		std::cout << (std::string("Error occured while trying to open " + fullFilename + ".\n").c_str());
+		std::cout << "Error occured while trying to open " << fullFilename << ".\n";
 		std::cerr << "Error bits are: "
 			<< "\nfailbit: " << file.fail() 
 			<< "\neofbit: " << file.eof()
