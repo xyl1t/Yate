@@ -139,7 +139,7 @@ void FileEditor::del(bool right) {
 	if (!(right) && carret.x == 0 && carret.y == 0) {
 		throw std::string(" No char to delete. ");
 	}
-	if (right && carret.x == getLineSize() || linesAmount() <= 1) {
+	if (right && carret.x == getLineSize() && carret.y == linesAmount() - 1) {
 		throw std::string(" No char to delete. ");
 	}
 
