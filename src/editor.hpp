@@ -28,7 +28,7 @@ public:
 	void deleteCharL();
     void deleteCharR();
 	
-	void printColoredStatus(const std::string& message, int colorPair);
+	void setColoredStatus(const std::string& message, int colorPair);
 
 	void hook(const std::string& stage);
 

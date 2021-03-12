@@ -99,7 +99,7 @@ void Editor::getInput() {
 	else if(input == 9 || input == KEY_STAB) { // TAB
 		file.put(static_cast<char>(input));
     } else if(input == 19) { // Ctrl-S
-		printColoredStatus(" File: \'" + file.getFullFilename() + "\'  has been saved. ", PAIR_INFO);
+		setColoredStatus(" File: " + file.getFullFilename() + " has been saved. ", PAIR_INFO);
 		file.save();
 	} else if(input == 3) { // Ctrl-C
 		file.close();
@@ -172,19 +172,19 @@ void Editor::deleteCharL() {
         	scrollY--;
     	}
 	} catch(std::string e) {
-		printColoredStatus(e, PAIR_ERROR);
+		setColoredStatus(e, PAIR_ERROR);
 	}
 }
 void Editor::deleteCharR() {
 	try{
 		file.del(true);
 	} catch(std::string e) {
-		printColoredStatus(e, PAIR_ERROR);
+		setColoredStatus(e, PAIR_ERROR);
 	}
 }
 
 // Reworked, more clean, status function
-void Editor::printColoredStatus(const std::string& message, int colorPair) {
+void Editor::setColoredStatus(const std::string& message, int colorPair) {
 	this->custom_message = message;
 	this->standard_status = false;
 	this->colorPair = colorPair;
