@@ -3,7 +3,6 @@
 
 #include "fileEditor.hpp"
 #include <string>
-#include <unordered_map>
 
 class Editor {
 public:
@@ -29,8 +28,9 @@ public:
 	void deleteCharL();
     void deleteCharR();
 	
-	void addSimpleStatus(const std::string& name, const std::string& status_message);
-	void enableSimpleStatus(const std::string& name);
+	void printColoredStatus(const std::string& message, int colorPair);
+
+	void hook(const std::string& stage);
 
 	void initColorPairs();
 	void applyColorPairToStatusBar(const int& colorPair);
@@ -53,11 +53,9 @@ private:
     
     bool alive;
 
-	std::unordered_map<std::string, std::string> statuses;
-
 	// Status control variables:
 	bool standard_status{true};
-	std::string name_of_status{""};
+	std::string custom_message{""};
 
 	// Color control variable:
 	int colorPair{1};

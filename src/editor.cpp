@@ -17,9 +17,6 @@ Editor::Editor(const std::string& filePath)
     alive(true) {
 
 	initColorPairs();
-
-	// NOTE: Define your statuses here:
-	addSimpleStatus("saved", " File: \'" + file.getFullFilename() + "\'\twas saved. ");
 }
 
 void Editor::draw() {
@@ -33,10 +30,15 @@ void Editor::draw() {
 	attron(A_STANDOUT);
 	attron(COLOR_PAIR(this->colorPair));
 
+	// Pre-print hook
+	hook("pre-print");
+
 	if (this->standard_status) {
 		mvprintw(getmaxy(stdscr) - 1, 0, " File: %s\tRow %2d, Col %2d ", file.getFullFilename().c_str(), file.getCarretY() + 1, file.getCarretX() + 1);
 	} else {
-		mvprintw(getmaxy(stdscr) - 1, 0, this->statuses[this->name_of_status].c_str());
+		mvprintw(getmaxy(stdscr) - 1, 0, this->custom_message.c_str());
+		// Post-print hook
+		hook("post-print");
 	}
 
 	attroff(COLOR_PAIR(this->colorPair));
@@ -47,10 +49,15 @@ void Editor::draw() {
 	std::string cursorText = file.getLine(file.getCarretY()).substr(0, file.getCarretX());
     mvprintw(file.getCarretY() - scrollY, 4, cursorText.c_str());
 	refresh();
+	// Post-refresh hook
+	hook("post-refresh");
 }
 
 void Editor::getInput() {
 	int input = getch();
+
+	// Raw-input hook
+	hook("raw-input");
 
 	// Reset status, if input recieved
 	this->standard_status = true;
@@ -92,13 +99,11 @@ void Editor::getInput() {
 	else if(input == 9 || input == KEY_STAB) { // TAB
 		file.put(static_cast<char>(input));
     } else if(input == 19) { // Ctrl-S
-		enableSimpleStatus("saved");
-		applyColorPairToStatusBar(PAIR_INFO);
+		printColoredStatus(" File: \'" + file.getFullFilename() + "\'  has been saved. ", PAIR_INFO);
 		file.save();
 	} else if(input == 3) { // Ctrl-C
 		file.close();
 		// NOTE: Maybe instead of exiting without saving, ask the user if he wants to save
-		printf("No changes has been made to the file.\n");
 		endwin();
 		exit(0);
 	}
@@ -161,35 +166,52 @@ void Editor::newLine() {
 
 }
 void Editor::deleteCharL() {
-	file.del(false);
-    if(file.getCarretY() - scrollY < 0) {
-        scrollY--;
-    }
+	try{
+		file.del(false);
+    	if(file.getCarretY() - scrollY < 0) {
+        	scrollY--;
+    	}
+	} catch(std::string e) {
+		printColoredStatus(e, PAIR_ERROR);
+	}
 }
 void Editor::deleteCharR() {
-	file.del(true);
+	try{
+		file.del(true);
+	} catch(std::string e) {
+		printColoredStatus(e, PAIR_ERROR);
+	}
 }
 
-// Adds simple status, that can be later enabled with enableSimpleStatus(), dissaprears on character input
-void Editor::addSimpleStatus(const std::string& name, const std::string& status_message) {
-	this->statuses.insert({name, status_message});
-}
-
-// Enables status, that was defined with addSimpleStatus()
-void Editor::enableSimpleStatus(const std::string& name) {
+// Reworked, more clean, status function
+void Editor::printColoredStatus(const std::string& message, int colorPair) {
+	this->custom_message = message;
 	this->standard_status = false;
-	this->name_of_status = name;
+	this->colorPair = colorPair;
 }
 
 // Defines color pairs
 void Editor::initColorPairs() {
-	init_pair(PAIR_ERROR, COLOR_RED, COLOR_BLACK);
+	init_pair(PAIR_ERROR, COLOR_WHITE, COLOR_RED);
 	init_pair(PAIR_STANDARD, COLOR_WHITE, COLOR_BLACK);
-	init_pair(PAIR_WARNING, COLOR_YELLOW, COLOR_BLACK);
+	init_pair(PAIR_WARNING, COLOR_WHITE, COLOR_YELLOW);
 	init_pair(PAIR_INFO, COLOR_WHITE, COLOR_BLUE);
 }
 
-// Enables color pair provided by parameter in the status bar
-void Editor::applyColorPairToStatusBar(const int& colorPair) {
-	this->colorPair = colorPair;
+// Placeholder for complex statuses (or maybe more), not sure if we'll need it, but let's keep it for now.
+void Editor::hook(const std::string& stage) {
+	/* TODO: make this function
+	Plan:
+		1. Iterate over all instances of "complexStatus" class in "statuses.cpp"
+		2. Get a list of functions to current stage
+		3. Pass `this` object to those functions
+		4. Invoke them
+
+	Basically, it's a more complex status, 
+	that can execute functions, 
+	with Editor's functions and variables,
+	and can do litreall much more.
+	(Sounds more like a mod api to be honest,
+	but i believe it may be useful for integrating into code later)
+	*/
 }
