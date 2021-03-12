@@ -30,8 +30,6 @@ public:
 	
 	void setColoredStatus(const std::string& message, int colorPair);
 
-	void hook(const std::string& stage);
-
 	void initColorPairs();
 	void applyColorPairToStatusBar(const int& colorPair);
 	

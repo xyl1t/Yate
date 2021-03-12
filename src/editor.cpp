@@ -30,15 +30,10 @@ void Editor::draw() {
 	attron(A_STANDOUT);
 	attron(COLOR_PAIR(this->colorPair));
 
-	// Pre-print hook
-	hook("pre-print");
-
 	if (this->standard_status) {
 		mvprintw(getmaxy(stdscr) - 1, 0, " File: %s\tRow %2d, Col %2d ", file.getFullFilename().c_str(), file.getCarretY() + 1, file.getCarretX() + 1);
 	} else {
 		mvprintw(getmaxy(stdscr) - 1, 0, this->custom_message.c_str());
-		// Post-print hook
-		hook("post-print");
 	}
 
 	attroff(COLOR_PAIR(this->colorPair));
@@ -49,16 +44,11 @@ void Editor::draw() {
 	std::string cursorText = file.getLine(file.getCarretY()).substr(0, file.getCarretX());
     mvprintw(file.getCarretY() - scrollY, 4, cursorText.c_str());
 	refresh();
-	// Post-refresh hook
-	hook("post-refresh");
 }
 
 void Editor::getInput() {
 	int input = getch();
-
-	// Raw-input hook
-	hook("raw-input");
-
+	
 	// Reset status, if input recieved
 	this->standard_status = true;
 
@@ -196,22 +186,4 @@ void Editor::initColorPairs() {
 	init_pair(PAIR_STANDARD, COLOR_WHITE, COLOR_BLACK);
 	init_pair(PAIR_WARNING, COLOR_WHITE, COLOR_YELLOW);
 	init_pair(PAIR_INFO, COLOR_WHITE, COLOR_BLUE);
-}
-
-// Placeholder for complex statuses (or maybe more), not sure if we'll need it, but let's keep it for now.
-void Editor::hook(const std::string& stage) {
-	/* TODO: make this function
-	Plan:
-		1. Iterate over all instances of "complexStatus" class in "statuses.cpp"
-		2. Get a list of functions to current stage
-		3. Pass `this` object to those functions
-		4. Invoke them
-
-	Basically, it's a more complex status, 
-	that can execute functions, 
-	with Editor's functions and variables,
-	and can do litreall much more.
-	(Sounds more like a mod api to be honest,
-	but i believe it may be useful for integrating into code later)
-	*/
 }
