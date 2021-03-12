@@ -24,13 +24,19 @@ FileEditor::FileEditor(std::string path)
 	fullFilename {},
 	filename {},
 	extension {} {
-	fs::path temp = fs::path{path};
-	if (!temp.is_absolute()) {
-		path = fs::absolute(temp).string();
-	}
-	for (int i = path.size() - 1; i >= 0; i--) {
-		if(path[i] == '/' || path[i] == '\\') break;
-		fullFilename += path[i];
+	if (path != "") {
+		fs::path temp = fs::path{path};
+		if (!temp.is_absolute()) {
+			path = fs::absolute(temp).string();
+		}
+		for (int i = path.size() - 1; i >= 0; i--) {
+			if(path[i] == '/' || path[i] == '\\') break;
+			fullFilename += path[i];
+		}
+	} else {
+		endwin();
+		printf("No file was supplied.\n");
+		exit(1);
 	}
 	#ifdef __linux__
 	struct stat file_stat;
