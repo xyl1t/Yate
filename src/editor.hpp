@@ -31,10 +31,10 @@ public:
 	
 	void setColoredStatus(const std::string& message, int colorPair);
 
-	void initColorPairs();
-	void applyColorPairToStatusBar(const int& colorPair);
+	void initColorPairs() const;
+	void applyColorPairToStatusBar(int colorPair);
 	
-    inline bool isAlive() {
+    inline bool isAlive() const {
         return alive;
     }
     
