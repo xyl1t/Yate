@@ -21,40 +21,37 @@ public:
 	void moveLeft();
 	void moveRight();
 
-	void save();
+	void saveFile();
 	void moveBeginningOfLine();
-    void moveBeginningOfText();
 	void moveEndOfLine();
+    void moveBeginningOfText();
+    void moveEndOfText();
     void newLine();
 	void deleteCharL();
     void deleteCharR();
 	
-	void setColoredStatus(const std::string& message, int colorPair);
+	void setStatus(const std::string& message);
+	void setStatus(const std::string& message, int colorPair);
+	void resetStatus();
 
-	void initColorPairs();
-	void applyColorPairToStatusBar(const int& colorPair);
+	void initColorPairs() const;
+	void applyColorPairToStatusBar(int colorPair);
 	
-    inline bool isAlive() {
+    inline bool isAlive() const {
         return alive;
     }
     
-    inline void saveFile() {
-        file.save();
-    }
-    
 private:
+	FileEditor file;
+	
 	int scrollX;
 	int scrollY;
 	int width;
 	int height;
-	
-	FileEditor file;
     
     bool alive;
 
-	// Status control variables:
-	bool standard_status{true};
-	std::string custom_message{""};
+	std::string statusText;
 
 	// Color control variable:
 	int colorPair{1};

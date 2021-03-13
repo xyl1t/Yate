@@ -15,9 +15,9 @@ Editor::Editor(const std::string& filePath)
 	width(getmaxx(stdscr)), 
 	height(getmaxy(stdscr) - 2),
     alive(true) {
-
+	resetStatus();
 	if (!file.hasWritePermission()) {
-		setColoredStatus(" File " + file.getFullFilename() + " is unwritable. ", PAIR_WARNING);
+		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
 	}
 	initColorPairs();
 }
@@ -25,19 +25,17 @@ Editor::Editor(const std::string& filePath)
 void Editor::draw() {
 	clear();
 	for (int lineNr = scrollY; lineNr < scrollY + height && lineNr < file.linesAmount(); lineNr++) {
-		const std::string& line { file.getLine(lineNr) };
+		std::string_view line { file.getLine(lineNr) };
 		move(lineNr - scrollY, 0);
-		printw("%3d %s", lineNr + 1, line.c_str());
+		printw("%3d %s", lineNr + 1, line.data());
 	}
 
+	// turn on and set color for status
 	attron(A_STANDOUT);
 	attron(COLOR_PAIR(this->colorPair));
-
-	if (this->standard_status) {
-		mvprintw(getmaxy(stdscr) - 1, 0, " File: %s\tRow %2d, Col %2d ", file.getFullFilename().c_str(), file.getCarretY() + 1, file.getCarretX() + 1);
-	} else {
-		mvprintw(getmaxy(stdscr) - 1, 0, this->custom_message.c_str());
-	}
+	
+	// print status at bottom of screen
+	mvprintw(getmaxy(stdscr) - 1, 0, this->statusText.c_str());
 
 	attroff(COLOR_PAIR(this->colorPair));
 	// Reset color pair:
@@ -53,51 +51,75 @@ void Editor::getInput() {
 	int input = getch();
 	
 	// Reset status, if input recieved
-	this->standard_status = true;
+	resetStatus();
 
 	if(input >= 32 && input < 127) {
 		file.put(static_cast<char>(input));
+		if(!file.hasWritePermission()) {
+			setStatus(" Warning: File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
+		}
 	}
-	else if(input == KEY_UP) {
-		moveUp();
-	}
-	else if(input == KEY_DOWN) {
-		moveDown(); 
-	}
-	else if(input == KEY_LEFT) {
-		moveLeft(); 
-	}
-	else if(input == KEY_RIGHT) {
-		moveRight();
-	}
-	else if(input == KEY_END) {
-		moveEndOfLine();
-	}
-	else if(input == KEY_HOME || input == 1) {
-		moveBeginningOfLine();
-	}
-	else if(input == 2) {
-		moveBeginningOfText();
-	}
-	else if(input == KEY_ENTER || input == 10) { // ENTER 
-		newLine();
-	}
-	else if(input == KEY_BACKSPACE || input == 127) { // BACKSPACE
-		deleteCharL();
-	}
-	// NOTE: let's do both KEY_DL and KEY_DC to be safe (famous last words)
-	else if(input == 330 || input == KEY_DL || input == KEY_DC) { // DEL
-		deleteCharR();
-	}
-	else if(input == 9 || input == KEY_STAB) { // TAB
-		file.put(static_cast<char>(input));
-    } else if(input == 19) { // Ctrl-S
-		save();
-	} else if(input == 3) { // Ctrl-C
-		file.close();
-		// NOTE: Maybe instead of exiting without saving, ask the user if he wants to save
-		endwin();
-		exit(0);
+	else
+	{
+		switch(input)
+		{
+			case KEY_UP:
+				moveUp();
+				break;
+			case KEY_DOWN:
+				moveDown();
+				break;
+			case KEY_LEFT:
+				moveLeft();
+				break;
+			case KEY_RIGHT:
+				moveRight();
+				break;
+			case 5:
+			case KEY_END:
+				moveEndOfLine();
+				break;
+			case KEY_HOME:
+			case 1:
+				moveBeginningOfLine();
+				break;
+			case 25: // CTRL+Y (for qwertz layout)
+			case 26: // CTRL+Z (for qwerty layout)
+				moveBeginningOfText();
+				break;
+			case 24: // CTRL+X
+				moveEndOfText();
+				break;
+			case KEY_ENTER:
+			case 10:
+				newLine();
+				break;
+			case KEY_BACKSPACE:
+			case 127:
+				deleteCharL();
+				break;
+			// NOTE: let's do both KEY_DL and KEY_DC to be safe (famous last words)
+			case 330:
+			case KEY_DL:
+				deleteCharR();
+				break;
+			case 9:
+			case KEY_STAB:
+				file.put(static_cast<char>(input));
+				break;
+			case 19:
+				saveFile();
+				break;
+			case 3:
+				file.close();
+				// NOTE: Maybe instead of exiting without saving, ask the user if he wants to save
+				endwin();
+				exit(0);
+				break;
+		}
+#ifndef NDEBUG
+		setStatus(this->statusText + "\tinput: " + std::to_string(input), PAIR_STANDARD);
+#endif
 	}
 }
 
@@ -114,7 +136,7 @@ void Editor::scrollLeft() {
 		scrollX--;
 }
 void Editor::scrollRight() {
-	if(scrollX + width < file.getLine().size() - 1)
+	if(scrollX + width < file.getLineSize() - 1)
 		scrollX++;
 }
 
@@ -129,7 +151,7 @@ void Editor::moveDown() {
 	file.moveDown();
 }
 void Editor::moveLeft() {
-	if(file.getCarretX() >= file.getLine().size())
+	if(file.getCarretX() >= file.getLineSize())
 		scrollLeft();
 	file.moveLeft();
 }
@@ -143,8 +165,18 @@ void Editor::moveBeginningOfLine() {
 	file.setCarretLocation(0, file.getCarretY());
 }
 void Editor::moveBeginningOfText() {
-	file.setCarretLocation(0, file.getCarretY());
-	while(file.getLine()[file.getCarretX()] == ' ' || file.getLine()[file.getCarretX()] == '\t' ) {
+	if(file.getCarretX() == 0 && file.getCarretY() == 0) return;
+
+	file.moveLeft();
+	while(file.getLine()[file.getCarretX() - 1] != ' ' && file.getLine()[file.getCarretX() - 1] != '\t' && file.getCarretX() != 0) {
+		file.moveLeft();
+	}
+}
+void Editor::moveEndOfText() {
+	if(file.getCarretX() == file.getLineSize() && file.getCarretY() == file.linesAmount()) return;
+
+	file.moveRight();
+	while(file.getLine()[file.getCarretX()] != ' ' && file.getLine()[file.getCarretX()] != '\t' && file.getCarretX() != file.getLineSize()) {
 		file.moveRight();
 	}
 }
@@ -164,37 +196,43 @@ void Editor::deleteCharL() {
         	scrollY--;
     	}
 	} catch(std::string e) {
-		setColoredStatus(e, PAIR_ERROR);
+		setStatus(e, PAIR_ERROR);
 	}
 }
 void Editor::deleteCharR() {
 	try{
 		file.del(true);
 	} catch(std::string e) {
-		setColoredStatus(e, PAIR_ERROR);
+		setStatus(e, PAIR_ERROR);
 	}
 }
 
-void Editor::save() {
+void Editor::saveFile() {
 	if (!file.hasWritePermission()) {
-		setColoredStatus(" File:  " + file.getFullFilename() + " is unwritable. ", PAIR_ERROR);
+		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
 	} else {
-		setColoredStatus(" File: " + file.getFullFilename() + " has been saved. ", PAIR_INFO);
+		setStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);
 		file.save();
 	}
 }
 
-// Reworked, more clean, status function
-void Editor::setColoredStatus(const std::string& message, int colorPair) {
-	this->custom_message = message;
-	this->standard_status = false;
+void Editor::setStatus(const std::string& message) {
+	setStatus(message, PAIR_STANDARD);
+}
+void Editor::setStatus(const std::string& message, int colorPair) {
+	this->statusText = message;
 	this->colorPair = colorPair;
+}
+void Editor::resetStatus() {
+	char buffer[256];
+	sprintf(buffer, " File: %s\tRow %2d, Col %2d ", file.getFullFilename().c_str(), file.getCarretY() + 1, file.getCarretX() + 1);
+	setStatus(buffer);
 }
 
 // Defines color pairs
-void Editor::initColorPairs() {
+void Editor::initColorPairs() const {
 	init_pair(PAIR_ERROR, COLOR_WHITE, COLOR_RED);
 	init_pair(PAIR_STANDARD, COLOR_WHITE, COLOR_BLACK);
-	init_pair(PAIR_WARNING, COLOR_WHITE, COLOR_YELLOW);
+	init_pair(PAIR_WARNING, COLOR_WHITE, COLOR_RED);
 	init_pair(PAIR_INFO, COLOR_WHITE, COLOR_BLUE);
 }

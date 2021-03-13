@@ -12,7 +12,7 @@ namespace  fs = std::filesystem;
 #include "Windows.h"
 #endif
 // If linux, include linux's system library.
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 #include <unistd.h>
 #include <sys/stat.h>
 #endif
@@ -20,10 +20,11 @@ namespace  fs = std::filesystem;
 FileEditor::FileEditor(const std::string& path) 
 	: carret{}, 
 	path{path},
-	lines{},
 	fullFilename {},
 	filename {},
-	extension {} {
+	extension {},
+	lines{},
+	writePermission{true} {
 	if (path != "") {
 		fs::path temp = fs::path{path};
 		std::string path;
@@ -33,48 +34,55 @@ FileEditor::FileEditor(const std::string& path)
 			if(path[i] == '/' || path[i] == '\\') break;
 			fullFilename += path[i];
 		}
+		std::reverse(fullFilename.begin(), fullFilename.end());
 	} else {
 		endwin();
 		std::cout << ("No file was supplied.\n");
 		exit(1);
 	}
-	#ifdef __linux__
+
 	struct stat file_stat;
 	stat(path.c_str(), &file_stat);
 	uid_t current_uid = getuid();
 	gid_t current_gid = getgid();
-
-	// TODO: Those are just ugly warnings, it would be better to get temporary file from buffer and open it.
-
 	fs::perms active_perms = fs::status(path).permissions();
-	if (
-		!((active_perms & fs::perms::owner_read) != fs::perms::none && file_stat.st_uid == current_uid) &&
-		!((active_perms & fs::perms::group_read) != fs::perms::none && file_stat.st_gid == current_gid) &&
-		!((active_perms & fs::perms::others_read) != fs::perms::none)
-	) {
+	
+	#if defined(__linux__) || defined(__APPLE__)
+	if (!(((active_perms & fs::perms::owner_read)  != fs::perms::none && file_stat.st_uid == current_uid) ||
+		  ((active_perms & fs::perms::group_read)  != fs::perms::none && file_stat.st_gid == current_gid) ||
+		  ((active_perms & fs::perms::others_read) != fs::perms::none))) {
 		endwin();
-		std::cout << "Can't edit " << fullFilename << " not enough permissions. ";
+		std::cout << "Can't edit " << fullFilename << " not enough permissions.\n";
 		exit(1);
 	}
-	if (
-		!((active_perms & fs::perms::owner_write) != fs::perms::none && file_stat.st_uid == current_uid) &&
-		!((active_perms & fs::perms::group_write) != fs::perms::none && file_stat.st_gid == current_gid) &&
-		!((active_perms & fs::perms::others_write) != fs::perms::none)
-	) {
-		this->writePermission = false;
+	this->writePermission = ((active_perms & fs::perms::owner_write)  != fs::perms::none && file_stat.st_uid == current_uid) ||
+							((active_perms & fs::perms::group_write)  != fs::perms::none && file_stat.st_gid == current_gid) ||
+							((active_perms & fs::perms::others_write) != fs::perms::none);
+	#elif
+	if (!(((active_perms & fs::perms::owner_read)  != fs::perms::none) ||
+		  ((active_perms & fs::perms::group_read)  != fs::perms::none) ||
+		  ((active_perms & fs::perms::others_read) != fs::perms::none))) {
+		endwin();
+		std::cout << "Can't edit " << fullFilename << " not enough permissions.\n";
+		exit(1);
 	}
+	this->writePermission = ((active_perms & fs::perms::owner_write)  != fs::perms::none) ||
+							((active_perms & fs::perms::group_write)  != fs::perms::none) ||
+							((active_perms & fs::perms::others_write) != fs::perms::none);
 	#endif
-	std::reverse(fullFilename.begin(), fullFilename.end());
+	
 	filename = fullFilename.substr(0, fullFilename.find('.'));
 	extension = fullFilename.substr(filename.size());
 	std::ifstream file {path};
 	if (!file) {
 		endwin();
 		std::cout << "Error occured while trying to open " << fullFilename << ".\n";
+#ifndef NDEBUG
 		std::cerr << "Error bits are: "
 			<< "\nfailbit: " << file.fail() 
 			<< "\neofbit: " << file.eof()
 			<< "\nbadbit: " << file.bad() << std::endl;  
+#endif
 		exit(1);
 	}
 	while(file)
@@ -91,8 +99,8 @@ FileEditor::FileEditor(const std::string& path)
 void FileEditor::moveUp() {
 	if(carret.y - 1 >= 0) {
 		carret.y -= 1;
-		if(lines[carret.y].size() < carret.maxX) {
-			carret.x = lines[carret.y].size();
+		if(getLineSize(carret.y) < carret.maxX) {
+			carret.x = getLineSize(carret.y);
 		}
 		else
 			carret.x = carret.maxX;
@@ -103,16 +111,16 @@ void FileEditor::moveUp() {
 	}
 }
 void FileEditor::moveDown() {
-	if(carret.y + 1 < lines.size()) {
+	if(carret.y + 1 < linesAmount()) {
 		carret.y += 1;
-		if(lines[carret.y].size() < carret.maxX) 
-			carret.x = lines[carret.y].size();
+		if(getLineSize(carret.y) < carret.maxX) 
+			carret.x = getLineSize(carret.y);
 		else 
 			carret.x = carret.maxX;
 	}
-	else if(carret.y + 1 >= lines.size() - 1) {
-		carret.y = lines.size() - 1;
-		carret.x = carret.maxX = lines[lines.size() - 1].size();
+	else if(carret.y + 1 >= linesAmount() - 1) {
+		carret.y = linesAmount() - 1;
+		carret.x = carret.maxX = lines[linesAmount() - 1].size();
 	}
 }
 void FileEditor::moveLeft() {
@@ -121,14 +129,14 @@ void FileEditor::moveLeft() {
 	} 
 	else if(carret.y > 0) {
 		carret.y--;
-		carret.x = carret.maxX = lines[carret.y].size();
+		carret.x = carret.maxX = getLineSize(carret.y);
 	}
 }
 void FileEditor::moveRight() {
-	if(carret.x < lines[carret.y].size()) {
+	if(carret.x < getLineSize(carret.y)) {
 		carret.x = carret.maxX = carret.x + 1;
 	} 
-	else if(carret.y < lines.size() - 1) {
+	else if(carret.y < linesAmount() - 1) {
 		carret.y++;
 		carret.x = carret.maxX = 0;
 	}
@@ -136,13 +144,13 @@ void FileEditor::moveRight() {
 
 void FileEditor::newLine() {
 	std::string& current = lines[carret.y];
-	std::string rest = current.substr(carret.x, lines[carret.y].size());
-	current.erase(carret.x, lines[carret.y].size()); 
+	std::string rest = current.substr(carret.x, getLineSize(carret.y));
+	current.erase(carret.x, getLineSize(carret.y)); 
 	lines.insert(lines.begin() + carret.y + 1, rest);
 }
 void FileEditor::del(bool right) {
 	// Anti-bug spray:
-	if ((carret.y == 0 && carret.x == 0) && linesAmount() <= 1 && lines[carret.y].size() <= 1) {
+	if ((carret.y == 0 && carret.x == 0) && linesAmount() <= 1 && getLineSize(carret.y) <= 1) {
 		throw std::string(" No char to delete. ");
 	}
 	if (!(right) && carret.x == 0 && carret.y == 0) {
@@ -153,7 +161,7 @@ void FileEditor::del(bool right) {
 	}
 
 	if(right) {
-		if(carret.x == lines[carret.y].size()) {
+		if(carret.x == getLineSize(carret.y)) {
 			int lineNr = carret.y;
 			std::string line = lines[lineNr + 1];
 			lines.erase(lines.begin() + lineNr + 1);
