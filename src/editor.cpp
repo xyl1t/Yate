@@ -58,46 +58,59 @@ void Editor::getInput() {
 	if(input >= 32 && input < 127) {
 		file.put(static_cast<char>(input));
 	}
-	else if(input == KEY_UP) {
-		moveUp();
-	}
-	else if(input == KEY_DOWN) {
-		moveDown(); 
-	}
-	else if(input == KEY_LEFT) {
-		moveLeft(); 
-	}
-	else if(input == KEY_RIGHT) {
-		moveRight();
-	}
-	else if(input == KEY_END) {
-		moveEndOfLine();
-	}
-	else if(input == KEY_HOME || input == 1) {
-		moveBeginningOfLine();
-	}
-	else if(input == 2) {
-		moveBeginningOfText();
-	}
-	else if(input == KEY_ENTER || input == 10) { // ENTER 
-		newLine();
-	}
-	else if(input == KEY_BACKSPACE || input == 127) { // BACKSPACE
-		deleteCharL();
-	}
-	// NOTE: let's do both KEY_DL and KEY_DC to be safe (famous last words)
-	else if(input == 330 || input == KEY_DL || input == KEY_DC) { // DEL
-		deleteCharR();
-	}
-	else if(input == 9 || input == KEY_STAB) { // TAB
-		file.put(static_cast<char>(input));
-    } else if(input == 19) { // Ctrl-S
-		save();
-	} else if(input == 3) { // Ctrl-C
-		file.close();
-		// NOTE: Maybe instead of exiting without saving, ask the user if he wants to save
-		endwin();
-		exit(0);
+	else
+	{
+		switch(input)
+		{
+			case KEY_UP:
+				moveUp();
+				break;
+			case KEY_DOWN:
+				moveDown();
+				break;
+			case KEY_LEFT:
+				moveLeft();
+				break;
+			case KEY_RIGHT:
+				moveRight();
+				break;
+			case KEY_END:
+				moveEndOfLine();
+				break;
+			case KEY_HOME:
+			case 1:
+				moveBeginningOfLine();
+				break;
+			case 2:
+				moveBeginningOfText();
+				break;
+			case KEY_ENTER:
+			case 10:
+				newLine();
+				break;
+			case KEY_BACKSPACE:
+			case 127:
+				deleteCharL();
+				break;
+			// NOTE: let's do both KEY_DL and KEY_DC to be safe (famous last words)
+			case 330:
+			case KEY_DL:
+				deleteCharR();
+				break;
+			case 9:
+			case KEY_STAB:
+				file.put(static_cast<char>(input));
+				break;
+			case 19:
+				save();
+				break;
+			case 3:
+				file.close();
+				// NOTE: Maybe instead of exiting without saving, ask the user if he wants to save
+				endwin();
+				exit(0);
+				break;
+		}
 	}
 }
 
@@ -192,7 +205,7 @@ void Editor::setColoredStatus(const std::string& message, int colorPair) {
 }
 
 // Defines color pairs
-void Editor::initColorPairs() {
+void Editor::initColorPairs() const {
 	init_pair(PAIR_ERROR, COLOR_WHITE, COLOR_RED);
 	init_pair(PAIR_STANDARD, COLOR_WHITE, COLOR_BLACK);
 	init_pair(PAIR_WARNING, COLOR_WHITE, COLOR_YELLOW);
