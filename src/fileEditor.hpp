@@ -88,7 +88,7 @@ private:
 	std::string filename;
 	std::string extension;
 	std::vector<std::string> lines;
-	bool writePermission{true};
+	bool writePermission;
 };
 
 #endif

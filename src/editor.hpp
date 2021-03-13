@@ -21,10 +21,11 @@ public:
 	void moveLeft();
 	void moveRight();
 
-	void save();
+	void saveFile();
 	void moveBeginningOfLine();
-    void moveBeginningOfText();
 	void moveEndOfLine();
+    void moveBeginningOfText();
+    void moveEndOfText();
     void newLine();
 	void deleteCharL();
     void deleteCharR();
@@ -36,10 +37,6 @@ public:
 	
     inline bool isAlive() const {
         return alive;
-    }
-    
-    inline void saveFile() {
-        file.save();
     }
     
 private:

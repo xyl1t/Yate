@@ -23,7 +23,8 @@ FileEditor::FileEditor(const std::string& path)
 	fullFilename {},
 	filename {},
 	extension {},
-	lines{} {
+	lines{},
+	writePermission{true} {
 	if (path != "") {
 		fs::path temp = fs::path{path};
 		std::string path;
@@ -33,38 +34,43 @@ FileEditor::FileEditor(const std::string& path)
 			if(path[i] == '/' || path[i] == '\\') break;
 			fullFilename += path[i];
 		}
+		std::reverse(fullFilename.begin(), fullFilename.end());
 	} else {
 		endwin();
 		std::cout << ("No file was supplied.\n");
 		exit(1);
 	}
-	#if defined(__linux__) || defined(__APPLE__)
+
 	struct stat file_stat;
 	stat(path.c_str(), &file_stat);
 	uid_t current_uid = getuid();
 	gid_t current_gid = getgid();
-
-	// TODO: Those are just ugly warnings, it would be better to get temporary file from buffer and open it.
-
 	fs::perms active_perms = fs::status(path).permissions();
-	if (
-		!((active_perms & fs::perms::owner_read) != fs::perms::none && file_stat.st_uid == current_uid) &&
-		!((active_perms & fs::perms::group_read) != fs::perms::none && file_stat.st_gid == current_gid) &&
-		!((active_perms & fs::perms::others_read) != fs::perms::none)
-	) {
+	
+	#if defined(__linux__) || defined(__APPLE__)
+	if (!(((active_perms & fs::perms::owner_read)  != fs::perms::none && file_stat.st_uid == current_uid) ||
+		  ((active_perms & fs::perms::group_read)  != fs::perms::none && file_stat.st_gid == current_gid) ||
+		  ((active_perms & fs::perms::others_read) != fs::perms::none))) {
 		endwin();
-		std::cout << "Can't edit " << fullFilename << " not enough permissions. ";
+		std::cout << "Can't edit " << fullFilename << " not enough permissions.\n";
 		exit(1);
 	}
-	if (
-		!((active_perms & fs::perms::owner_write) != fs::perms::none && file_stat.st_uid == current_uid) &&
-		!((active_perms & fs::perms::group_write) != fs::perms::none && file_stat.st_gid == current_gid) &&
-		!((active_perms & fs::perms::others_write) != fs::perms::none)
-	) {
-		this->writePermission = false;
+	this->writePermission = ((active_perms & fs::perms::owner_write)  != fs::perms::none && file_stat.st_uid == current_uid) ||
+							((active_perms & fs::perms::group_write)  != fs::perms::none && file_stat.st_gid == current_gid) ||
+							((active_perms & fs::perms::others_write) != fs::perms::none);
+	#elif
+	if (!(((active_perms & fs::perms::owner_read)  != fs::perms::none) ||
+		  ((active_perms & fs::perms::group_read)  != fs::perms::none) ||
+		  ((active_perms & fs::perms::others_read) != fs::perms::none))) {
+		endwin();
+		std::cout << "Can't edit " << fullFilename << " not enough permissions.\n";
+		exit(1);
 	}
+	this->writePermission = ((active_perms & fs::perms::owner_write)  != fs::perms::none) ||
+							((active_perms & fs::perms::group_write)  != fs::perms::none) ||
+							((active_perms & fs::perms::others_write) != fs::perms::none);
 	#endif
-	std::reverse(fullFilename.begin(), fullFilename.end());
+	
 	filename = fullFilename.substr(0, fullFilename.find('.'));
 	extension = fullFilename.substr(filename.size());
 	std::ifstream file {path};

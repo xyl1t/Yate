@@ -37,8 +37,8 @@ int main(int argc, char** argv) {
 		editor.getInput();
 	}
 	editor.saveFile();
-		
+	
 	endwin();
-
+	
 	return 0;
 }

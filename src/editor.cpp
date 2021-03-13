@@ -17,7 +17,7 @@ Editor::Editor(const std::string& filePath)
     alive(true) {
 
 	if (!file.hasWritePermission()) {
-		setColoredStatus(" File " + file.getFullFilename() + " is unwritable. ", PAIR_WARNING);
+		setColoredStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
 	}
 	initColorPairs();
 }
@@ -25,9 +25,9 @@ Editor::Editor(const std::string& filePath)
 void Editor::draw() {
 	clear();
 	for (int lineNr = scrollY; lineNr < scrollY + height && lineNr < file.linesAmount(); lineNr++) {
-		const std::string& line { file.getLine(lineNr) };
+		std::string_view line { file.getLine(lineNr) };
 		move(lineNr - scrollY, 0);
-		printw("%3d %s", lineNr + 1, line.c_str());
+		printw("%3d %s", lineNr + 1, line.data());
 	}
 
 	attron(A_STANDOUT);
@@ -57,6 +57,9 @@ void Editor::getInput() {
 
 	if(input >= 32 && input < 127) {
 		file.put(static_cast<char>(input));
+		if(!file.hasWritePermission()) {
+			setColoredStatus(" Warning: File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
+		}
 	}
 	else
 	{
@@ -74,6 +77,7 @@ void Editor::getInput() {
 			case KEY_RIGHT:
 				moveRight();
 				break;
+			case 5:
 			case KEY_END:
 				moveEndOfLine();
 				break;
@@ -81,8 +85,12 @@ void Editor::getInput() {
 			case 1:
 				moveBeginningOfLine();
 				break;
-			case 2:
+			case 25: // CTRL+Y (for qwertz layout)
+			case 26: // CTRL+Z (for qwerty layout)
 				moveBeginningOfText();
+				break;
+			case 24: // CTRL+X
+				moveEndOfText();
 				break;
 			case KEY_ENTER:
 			case 10:
@@ -102,7 +110,7 @@ void Editor::getInput() {
 				file.put(static_cast<char>(input));
 				break;
 			case 19:
-				save();
+				saveFile();
 				break;
 			case 3:
 				file.close();
@@ -111,6 +119,9 @@ void Editor::getInput() {
 				exit(0);
 				break;
 		}
+#ifndef NDEBUG
+		setColoredStatus(this->custom_message + " input: " + std::to_string(input), PAIR_STANDARD);
+#endif
 	}
 }
 
@@ -156,8 +167,18 @@ void Editor::moveBeginningOfLine() {
 	file.setCarretLocation(0, file.getCarretY());
 }
 void Editor::moveBeginningOfText() {
-	file.setCarretLocation(0, file.getCarretY());
-	while(file.getLine()[file.getCarretX()] == ' ' || file.getLine()[file.getCarretX()] == '\t' ) {
+	if(file.getCarretX() == 0 && file.getCarretY() == 0) return;
+
+	file.moveLeft();
+	while(file.getLine()[file.getCarretX() - 1] != ' ' && file.getLine()[file.getCarretX() - 1] != '\t' && file.getCarretX() != 0) {
+		file.moveLeft();
+	}
+}
+void Editor::moveEndOfText() {
+	if(file.getCarretX() == file.getLineSize() && file.getCarretY() == file.linesAmount()) return;
+
+	file.moveRight();
+	while(file.getLine()[file.getCarretX()] != ' ' && file.getLine()[file.getCarretX()] != '\t' && file.getCarretX() != file.getLineSize()) {
 		file.moveRight();
 	}
 }
@@ -188,11 +209,11 @@ void Editor::deleteCharR() {
 	}
 }
 
-void Editor::save() {
+void Editor::saveFile() {
 	if (!file.hasWritePermission()) {
-		setColoredStatus(" File:  " + file.getFullFilename() + " is unwritable. ", PAIR_ERROR);
+		setColoredStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
 	} else {
-		setColoredStatus(" File: " + file.getFullFilename() + " has been saved. ", PAIR_INFO);
+		setColoredStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);
 		file.save();
 	}
 }
@@ -208,6 +229,6 @@ void Editor::setColoredStatus(const std::string& message, int colorPair) {
 void Editor::initColorPairs() const {
 	init_pair(PAIR_ERROR, COLOR_WHITE, COLOR_RED);
 	init_pair(PAIR_STANDARD, COLOR_WHITE, COLOR_BLACK);
-	init_pair(PAIR_WARNING, COLOR_WHITE, COLOR_YELLOW);
+	init_pair(PAIR_WARNING, COLOR_WHITE, COLOR_RED);
 	init_pair(PAIR_INFO, COLOR_WHITE, COLOR_BLUE);
 }
