@@ -3,7 +3,8 @@
 #include "editor.hpp"
 
 // Yate: Yet Another Text Editor
-// Made by Xylit and Niki4tap
+// Originally created by Xylit (@Xyl1t)
+// Many thanks to @Niki4Tap and @EntireTwix for contributing!
 
 //  TODO:
 //  * Fix vertical movement when tabs are present
