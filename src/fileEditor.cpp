@@ -20,10 +20,10 @@ namespace  fs = std::filesystem;
 FileEditor::FileEditor(const std::string& path) 
 	: carret{}, 
 	path{path},
-	lines{},
 	fullFilename {},
 	filename {},
-	extension {} {
+	extension {},
+	lines{} {
 	if (path != "") {
 		fs::path temp = fs::path{path};
 		std::string path;
@@ -93,8 +93,8 @@ FileEditor::FileEditor(const std::string& path)
 void FileEditor::moveUp() {
 	if(carret.y - 1 >= 0) {
 		carret.y -= 1;
-		if(lines[carret.y].size() < carret.maxX) {
-			carret.x = lines[carret.y].size();
+		if(getLineSize(carret.y) < carret.maxX) {
+			carret.x = getLineSize(carret.y);
 		}
 		else
 			carret.x = carret.maxX;
@@ -105,16 +105,16 @@ void FileEditor::moveUp() {
 	}
 }
 void FileEditor::moveDown() {
-	if(carret.y + 1 < lines.size()) {
+	if(carret.y + 1 < linesAmount()) {
 		carret.y += 1;
-		if(lines[carret.y].size() < carret.maxX) 
-			carret.x = lines[carret.y].size();
+		if(getLineSize(carret.y) < carret.maxX) 
+			carret.x = getLineSize(carret.y);
 		else 
 			carret.x = carret.maxX;
 	}
-	else if(carret.y + 1 >= lines.size() - 1) {
-		carret.y = lines.size() - 1;
-		carret.x = carret.maxX = lines[lines.size() - 1].size();
+	else if(carret.y + 1 >= linesAmount() - 1) {
+		carret.y = linesAmount() - 1;
+		carret.x = carret.maxX = lines[linesAmount() - 1].size();
 	}
 }
 void FileEditor::moveLeft() {
@@ -123,14 +123,14 @@ void FileEditor::moveLeft() {
 	} 
 	else if(carret.y > 0) {
 		carret.y--;
-		carret.x = carret.maxX = lines[carret.y].size();
+		carret.x = carret.maxX = getLineSize(carret.y);
 	}
 }
 void FileEditor::moveRight() {
-	if(carret.x < lines[carret.y].size()) {
+	if(carret.x < getLineSize(carret.y)) {
 		carret.x = carret.maxX = carret.x + 1;
 	} 
-	else if(carret.y < lines.size() - 1) {
+	else if(carret.y < linesAmount() - 1) {
 		carret.y++;
 		carret.x = carret.maxX = 0;
 	}
@@ -138,13 +138,13 @@ void FileEditor::moveRight() {
 
 void FileEditor::newLine() {
 	std::string& current = lines[carret.y];
-	std::string rest = current.substr(carret.x, lines[carret.y].size());
-	current.erase(carret.x, lines[carret.y].size()); 
+	std::string rest = current.substr(carret.x, getLineSize(carret.y));
+	current.erase(carret.x, getLineSize(carret.y)); 
 	lines.insert(lines.begin() + carret.y + 1, rest);
 }
 void FileEditor::del(bool right) {
 	// Anti-bug spray:
-	if ((carret.y == 0 && carret.x == 0) && linesAmount() <= 1 && lines[carret.y].size() <= 1) {
+	if ((carret.y == 0 && carret.x == 0) && linesAmount() <= 1 && getLineSize(carret.y) <= 1) {
 		throw std::string(" No char to delete. ");
 	}
 	if (!(right) && carret.x == 0 && carret.y == 0) {
@@ -155,7 +155,7 @@ void FileEditor::del(bool right) {
 	}
 
 	if(right) {
-		if(carret.x == lines[carret.y].size()) {
+		if(carret.x == getLineSize(carret.y)) {
 			int lineNr = carret.y;
 			std::string line = lines[lineNr + 1];
 			lines.erase(lines.begin() + lineNr + 1);

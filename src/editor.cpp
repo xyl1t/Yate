@@ -127,7 +127,7 @@ void Editor::scrollLeft() {
 		scrollX--;
 }
 void Editor::scrollRight() {
-	if(scrollX + width < file.getLine().size() - 1)
+	if(scrollX + width < file.getLineSize() - 1)
 		scrollX++;
 }
 
@@ -142,7 +142,7 @@ void Editor::moveDown() {
 	file.moveDown();
 }
 void Editor::moveLeft() {
-	if(file.getCarretX() >= file.getLine().size())
+	if(file.getCarretX() >= file.getLineSize())
 		scrollLeft();
 	file.moveLeft();
 }

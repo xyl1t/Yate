@@ -43,12 +43,12 @@ public:
     }
     
 private:
+	FileEditor file;
+	
 	int scrollX;
 	int scrollY;
 	int width;
 	int height;
-	
-	FileEditor file;
     
     bool alive;
 

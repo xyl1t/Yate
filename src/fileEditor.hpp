@@ -44,10 +44,10 @@ public:
 	inline const std::string& getLine(size_t lineNr) const {
 		return lines[lineNr];
 	}
-	inline size_t getLineSize() const {
+	inline int getLineSize() const {
 		return lines[carret.y].size();
 	}
-	inline size_t getLineSize(size_t lineNr) const {
+	inline int getLineSize(size_t lineNr) const {
 		return lines[lineNr].size();
 	}
 	inline const std::string& getPath() const {
@@ -62,7 +62,7 @@ public:
 	inline const std::string& getFileExtension() const {
 		return extension;
 	}
-	inline size_t linesAmount() const {
+	inline int linesAmount() const {
 		return lines.size();
 	}
 	
