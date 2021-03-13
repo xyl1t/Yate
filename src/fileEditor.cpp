@@ -71,10 +71,12 @@ FileEditor::FileEditor(const std::string& path)
 	if (!file) {
 		endwin();
 		std::cout << "Error occured while trying to open " << fullFilename << ".\n";
+#ifndef NDEBUG
 		std::cerr << "Error bits are: "
 			<< "\nfailbit: " << file.fail() 
 			<< "\neofbit: " << file.eof()
 			<< "\nbadbit: " << file.bad() << std::endl;  
+#endif
 		exit(1);
 	}
 	while(file)
