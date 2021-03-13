@@ -15,9 +15,9 @@ Editor::Editor(const std::string& filePath)
 	width(getmaxx(stdscr)), 
 	height(getmaxy(stdscr) - 2),
     alive(true) {
-
+	resetStatus();
 	if (!file.hasWritePermission()) {
-		setColoredStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
+		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
 	}
 	initColorPairs();
 }
@@ -30,14 +30,12 @@ void Editor::draw() {
 		printw("%3d %s", lineNr + 1, line.data());
 	}
 
+	// turn on and set color for status
 	attron(A_STANDOUT);
 	attron(COLOR_PAIR(this->colorPair));
-
-	if (this->standard_status) {
-		mvprintw(getmaxy(stdscr) - 1, 0, " File: %s\tRow %2d, Col %2d ", file.getFullFilename().c_str(), file.getCarretY() + 1, file.getCarretX() + 1);
-	} else {
-		mvprintw(getmaxy(stdscr) - 1, 0, this->custom_message.c_str());
-	}
+	
+	// print status at bottom of screen
+	mvprintw(getmaxy(stdscr) - 1, 0, this->statusText.c_str());
 
 	attroff(COLOR_PAIR(this->colorPair));
 	// Reset color pair:
@@ -53,12 +51,12 @@ void Editor::getInput() {
 	int input = getch();
 	
 	// Reset status, if input recieved
-	this->standard_status = true;
+	resetStatus();
 
 	if(input >= 32 && input < 127) {
 		file.put(static_cast<char>(input));
 		if(!file.hasWritePermission()) {
-			setColoredStatus(" Warning: File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
+			setStatus(" Warning: File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
 		}
 	}
 	else
@@ -120,7 +118,7 @@ void Editor::getInput() {
 				break;
 		}
 #ifndef NDEBUG
-		setColoredStatus(this->custom_message + " input: " + std::to_string(input), PAIR_STANDARD);
+		setStatus(this->statusText + "\tinput: " + std::to_string(input), PAIR_STANDARD);
 #endif
 	}
 }
@@ -198,31 +196,37 @@ void Editor::deleteCharL() {
         	scrollY--;
     	}
 	} catch(std::string e) {
-		setColoredStatus(e, PAIR_ERROR);
+		setStatus(e, PAIR_ERROR);
 	}
 }
 void Editor::deleteCharR() {
 	try{
 		file.del(true);
 	} catch(std::string e) {
-		setColoredStatus(e, PAIR_ERROR);
+		setStatus(e, PAIR_ERROR);
 	}
 }
 
 void Editor::saveFile() {
 	if (!file.hasWritePermission()) {
-		setColoredStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
+		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
 	} else {
-		setColoredStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);
+		setStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);
 		file.save();
 	}
 }
 
-// Reworked, more clean, status function
-void Editor::setColoredStatus(const std::string& message, int colorPair) {
-	this->custom_message = message;
-	this->standard_status = false;
+void Editor::setStatus(const std::string& message) {
+	setStatus(message, PAIR_STANDARD);
+}
+void Editor::setStatus(const std::string& message, int colorPair) {
+	this->statusText = message;
 	this->colorPair = colorPair;
+}
+void Editor::resetStatus() {
+	char buffer[256];
+	sprintf(buffer, " File: %s\tRow %2d, Col %2d ", file.getFullFilename().c_str(), file.getCarretY() + 1, file.getCarretX() + 1);
+	setStatus(buffer);
 }
 
 // Defines color pairs

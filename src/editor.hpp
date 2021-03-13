@@ -30,7 +30,9 @@ public:
 	void deleteCharL();
     void deleteCharR();
 	
-	void setColoredStatus(const std::string& message, int colorPair);
+	void setStatus(const std::string& message);
+	void setStatus(const std::string& message, int colorPair);
+	void resetStatus();
 
 	void initColorPairs() const;
 	void applyColorPairToStatusBar(int colorPair);
@@ -49,9 +51,7 @@ private:
     
     bool alive;
 
-	// Status control variables:
-	bool standard_status{true};
-	std::string custom_message{""};
+	std::string statusText;
 
 	// Color control variable:
 	int colorPair{1};
