@@ -12,7 +12,7 @@ namespace  fs = std::filesystem;
 #include "Windows.h"
 #endif
 // If linux, include linux's system library.
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 #include <unistd.h>
 #include <sys/stat.h>
 #endif
@@ -38,7 +38,7 @@ FileEditor::FileEditor(const std::string& path)
 		std::cout << ("No file was supplied.\n");
 		exit(1);
 	}
-	#ifdef __linux__
+	#if defined(__linux__) || defined(__APPLE__)
 	struct stat file_stat;
 	stat(path.c_str(), &file_stat);
 	uid_t current_uid = getuid();

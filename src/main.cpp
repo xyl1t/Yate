@@ -2,10 +2,19 @@
 #include "fileEditor.hpp"
 #include "editor.hpp"
 
-/********************************
- * Todo:						*
- * Fix Tab movement 			*
- ********************************/
+// Yate: Yet Another Text Editor
+// Made by Xylit and Niki4tap
+
+//  TODO:
+//  * Fix vertical movement when tabs are present
+//  * Create a file when no file is specified
+//  * Word highlighting 
+//    * Basic keyword highlighting 
+//    * Begin and end parenthesis 
+//    * Custom profile with format: 
+//      extension: <file extension>
+//      <word>: <color>
+//  * Check for permissions on windows
 
 int main(int argc, char** argv) {
 	std::string path { "" };
