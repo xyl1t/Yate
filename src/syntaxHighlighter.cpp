@@ -14,41 +14,17 @@ void syntaxHighlighter::parseLine(const std::string& line, int lineNr, const std
 }
 
 void syntaxHighlighter::parseSymbol(const std::string& symbol, const std::string& extension) {
-	if (isComment || isMultilineComment) {
-		if (symbol == splitBySpecialChars(supportMultilineComment(extension))[2]) {
+	if (isPreprocessor) {
+		this->isPreprocessor = false;
+		this->afterPreprocessor = true;
+		attrPrint(symbol, "preprocessor", extension);
+	} else if (isComment || isMultilineComment) {
+		if (symbol == splitBySpecialChars(this->featuremaps.at(extension).at("multiline_comment").second)[2]) {
 			isMultilineComment = false;
 		}
-		if (!( COLORS > 8 && can_change_color())) {
-			attron(COLOR_PAIR(PAIR_SYNTAX_GREEN));
-		} else {
-			// Any custom pair can go here, not only defaults:
-			attron(COLOR_PAIR(PAIR_SYNTAX_GREEN));
-		}
-		printw(symbol.c_str());
-		attroff(COLOR_PAIR(PAIR_SYNTAX_GREEN));
-		
-	} else if (isString) {
-		if (symbol == "\"") {
-			isString = false;
-		}
-		if (!( COLORS > 8 && can_change_color())) {
-			attron(COLOR_PAIR(PAIR_SYNTAX_RED));
-		} else {
-			// Any custom pair can go here, not only defaults:
-			attron(COLOR_PAIR(PAIR_SYNTAX_RED));
-		}
-		printw(symbol.c_str());
-		attroff(COLOR_PAIR(PAIR_SYNTAX_RED));
-	} else if (symbol == "\"") {
-		isString = true;
-		if (!( COLORS > 8 && can_change_color())) {
-			attron(COLOR_PAIR(PAIR_SYNTAX_RED));
-		} else {
-			// Any custom pair can go here, not only defaults:
-			attron(COLOR_PAIR(PAIR_SYNTAX_RED));
-		}
-		printw(symbol.c_str());
-		attroff(COLOR_PAIR(PAIR_SYNTAX_RED));
+		simpleAttrPrint(symbol, PAIR_SYNTAX_GREEN);
+	} else if (afterPreprocessor) {
+		attrPrint(symbol, "after_preprocessor", extension); 
 	} else if (symbol == " " || symbol == "\t") {
 		printw(symbol.c_str());
 	} else if (symbol == "(") {
@@ -59,9 +35,7 @@ void syntaxHighlighter::parseSymbol(const std::string& symbol, const std::string
 		} else {
 			parenthesisFirstLayer = true;
 		}
-		attron(COLOR_PAIR(PAIR_OPEN_CLOSE_SYMBOL));
-		printw(symbol.c_str());
-		attroff(COLOR_PAIR(PAIR_OPEN_CLOSE_SYMBOL));
+		simpleAttrPrint(symbol, PAIR_OPEN_CLOSE_SYMBOL);
 	} else if (symbol == ")") {
 		if (parenthesisThirdLayer) {
 			parenthesisThirdLayer = false;
@@ -70,9 +44,7 @@ void syntaxHighlighter::parseSymbol(const std::string& symbol, const std::string
 		} else {
 			parenthesisFirstLayer = false;
 		}
-		attron(COLOR_PAIR(PAIR_OPEN_CLOSE_SYMBOL));
-		printw(symbol.c_str());
-		attroff(COLOR_PAIR(PAIR_OPEN_CLOSE_SYMBOL));
+		simpleAttrPrint(symbol, PAIR_OPEN_CLOSE_SYMBOL);
 	} else if (symbol == "[") {
 		if (squareFirstLayer) {
 			squareSecondLayer = true;
@@ -82,9 +54,7 @@ void syntaxHighlighter::parseSymbol(const std::string& symbol, const std::string
 			squareFirstLayer = true;
 		}
 		
-		attron(COLOR_PAIR(PAIR_OPEN_CLOSE_SYMBOL));
-		printw(symbol.c_str());
-		attroff(COLOR_PAIR(PAIR_OPEN_CLOSE_SYMBOL));
+		simpleAttrPrint(symbol, PAIR_OPEN_CLOSE_SYMBOL);
 	} else if (symbol == "]") {
 		if (squareThirdLayer) {
 			squareThirdLayer = false;
@@ -94,9 +64,7 @@ void syntaxHighlighter::parseSymbol(const std::string& symbol, const std::string
 			squareFirstLayer = false;
 		}
 			
-		attron(COLOR_PAIR(PAIR_OPEN_CLOSE_SYMBOL));
-		printw(symbol.c_str());
-		attroff(COLOR_PAIR(PAIR_OPEN_CLOSE_SYMBOL));
+		simpleAttrPrint(symbol, PAIR_OPEN_CLOSE_SYMBOL);
 	} else if (symbol == "{") {
 		if (curlyFirstLayer) {
 			curlySecondLayer = true;
@@ -105,9 +73,7 @@ void syntaxHighlighter::parseSymbol(const std::string& symbol, const std::string
 		} else {
 			curlyFirstLayer = true;
 		}
-		attron(COLOR_PAIR(PAIR_OPEN_CLOSE_SYMBOL));
-		printw(symbol.c_str());
-		attroff(COLOR_PAIR(PAIR_OPEN_CLOSE_SYMBOL));
+		simpleAttrPrint(symbol, PAIR_OPEN_CLOSE_SYMBOL);
 	} else if (symbol == "}") {
 		if (curlyThirdLayer) {
 			curlyThirdLayer = false;
@@ -116,69 +82,43 @@ void syntaxHighlighter::parseSymbol(const std::string& symbol, const std::string
 		} else {
 			curlyFirstLayer = false;
 		}
-		
-		attron(COLOR_PAIR(PAIR_OPEN_CLOSE_SYMBOL));
-		printw(symbol.c_str());
-		attroff(COLOR_PAIR(PAIR_OPEN_CLOSE_SYMBOL));
-	} else if (hasFeaturemap(extension)) {
-		if (supportCommandEnding(extension) != "" && symbol == supportCommandEnding(extension).c_str()) {
-			if (!( COLORS > 8 && can_change_color())) {
-				attron(COLOR_PAIR(PAIR_SYNTAX_YELLOW));
-			} else {
-				// Any custom pair can go here, not only defaults:
-				attron(COLOR_PAIR(PAIR_SYNTAX_YELLOW));
+		simpleAttrPrint(symbol, PAIR_OPEN_CLOSE_SYMBOL);
+	} else if (hasHashmap(extension) || hasFeaturemap(extension)) {
+		if (isKeyword(symbol, extension)) {
+			attrPrint(symbol, "keyword", extension);
+		} else if (isString) {
+			if (symbol == "\"" || symbol == "\'") {
+				isString = false;
 			}
-			printw(symbol.c_str());
-			attroff(COLOR_PAIR(PAIR_SYNTAX_YELLOW));
+			attrPrint(symbol, "__reserved_string_color__", extension);
+		} else if (symbol == "\"" || symbol == "\'") {
+			isString = true;
+			attrPrint(symbol, "__reserved_string_color__", extension);
+		} else if (this->featuremaps.at(extension).at("preprocessor").second != "" && symbol == this->featuremaps.at(extension).at("preprocessor").second.c_str()) {
+			this->isPreprocessor = true;
+			attrPrint(symbol, "preprocessor", extension);
 			
-		} else if (supportArrowPointer(extension) != "" && symbol == supportArrowPointer(extension).c_str()) {
-			if (!( COLORS > 8 && can_change_color())) {
-				attron(COLOR_PAIR(PAIR_SYNTAX_RED));
-			} else {
-				// Any custom pair can go here, not only defaults:
-				attron(COLOR_PAIR(PAIR_SYNTAX_RED));
-			}
-			printw(symbol.c_str());
-			attroff(COLOR_PAIR(PAIR_SYNTAX_RED));
+		} else if (this->featuremaps.at(extension).at("statement_end").second != "" && symbol == this->featuremaps.at(extension).at("statement_end").second.c_str()) {
+			attrPrint(symbol, "statement_end", extension);
 			
-		} else if (supportComment(extension) != "" && symbol == supportComment(extension).c_str()) {
+		} else if (this->featuremaps.at(extension).at("arrow_pointer").second != "" && symbol == this->featuremaps.at(extension).at("arrow_pointer").second.c_str()) {
+			simpleAttrPrint(symbol, PAIR_SYNTAX_RED);
+			
+		} else if (this->featuremaps.at(extension).at("comment").second != "" && symbol == this->featuremaps.at(extension).at("comment").second.c_str()) {
 			isComment = true;
-			if (!( COLORS > 8 && can_change_color())) {
-				attron(COLOR_PAIR(PAIR_SYNTAX_GREEN));
-			} else {
-				// Any custom pair can go here, not only defaults:
-				attron(COLOR_PAIR(PAIR_SYNTAX_GREEN));
-			}
-			printw(symbol.c_str());
-			attroff(COLOR_PAIR(PAIR_SYNTAX_GREEN));
-		} else if (supportMultilineComment(extension) != "") {
-			std::vector<std::string> multilineCommentSymbols = splitBySpecialChars(supportMultilineComment(extension));
+			simpleAttrPrint(symbol, PAIR_SYNTAX_GREEN);
+		} else if (this->featuremaps.at(extension).at("multiline_comment").second != "") {
+			std::vector<std::string> multilineCommentSymbols = splitBySpecialChars(this->featuremaps.at(extension).at("multiline_comment").second);
 			if (symbol == multilineCommentSymbols[0]) {
 				isMultilineComment = true;
-				if (!( COLORS > 8 && can_change_color())) {
-					attron(COLOR_PAIR(PAIR_SYNTAX_GREEN));
-				} else {
-					// Any custom pair can go here, not only defaults:
-					attron(COLOR_PAIR(PAIR_SYNTAX_GREEN));
-				}
-				printw(symbol.c_str());
-				attroff(COLOR_PAIR(PAIR_SYNTAX_GREEN));
+				simpleAttrPrint(symbol, PAIR_SYNTAX_GREEN);
 			} else if (symbol == multilineCommentSymbols[2]) {
 				isMultilineComment = false;
-				if (!( COLORS > 8 && can_change_color())) {
-					attron(COLOR_PAIR(PAIR_SYNTAX_GREEN));
-				} else {
-					// Any custom pair can go here, not only defaults:
-					attron(COLOR_PAIR(PAIR_SYNTAX_GREEN));
-				}
-				printw(symbol.c_str());
-				attroff(COLOR_PAIR(PAIR_SYNTAX_GREEN));
+				simpleAttrPrint(symbol, PAIR_SYNTAX_GREEN);
 			} else {
 				printw(symbol.c_str());
 			}
 		}
-	} else {
-		printw(symbol.c_str());
 	}
 }
 

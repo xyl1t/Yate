@@ -17,6 +17,39 @@
 class syntaxHighlighter {
 	public:
 
+	inline void simpleAttrPrint(const std::string& symbol, int pair) const {
+		if (!( COLORS > 8 && can_change_color())) {
+				attron(COLOR_PAIR(pair));
+			} else {
+				// Any custom pair can go here, not only defaults:
+				attron(COLOR_PAIR(pair));
+			}
+			printw(symbol.c_str());
+			attroff(COLOR_PAIR(pair));
+	}
+
+	inline void attrPrint(const std::string& symbol, const std::string& keyword, const std::string& extension) const {
+		if (!( COLORS > 8 && can_change_color())) {
+			attron(COLOR_PAIR(getBackupColorByKeyword(keyword, extension)));
+			printw(symbol.c_str());
+			attroff(COLOR_PAIR(getBackupColorByKeyword(keyword, extension)));
+		} else {
+			// Any custom pair can go here, not only defaults:
+			attron(COLOR_PAIR(getColorByKeyword(keyword, extension)));
+			printw(symbol.c_str());
+			attroff(COLOR_PAIR(getColorByKeyword(keyword, extension)));
+		}
+	}
+
+	// Another stolen piece of code: https://stackoverflow.com/questions/3418231/replace-part-of-a-string-with-another-string
+	inline void replaceStringInPlace(std::string& string, const std::string& substring, const std::string& replace) {
+		size_t pos = 0;
+		while ((pos = string.find(substring, pos)) != std::string::npos) {
+			string.replace(pos, substring.length(), replace);
+			pos += replace.length();
+		}
+	}
+
 	inline void resetAllFlags() {
 		isPreprocessor = false;
 		afterPreprocessor = false;
@@ -32,45 +65,24 @@ class syntaxHighlighter {
 		afterPreprocessor = false;
 	}
 
+	inline bool isKeyword(const std::string& symbol, const std::string& extension) {
+		std::string new_symbol = std::string(symbol);
+		replaceStringInPlace(new_symbol, "*", "");
+		if (keywordmaps.find(extension) != keywordmaps.end()) {
+			std::vector<std::string> keywordmap = keywordmaps.at(extension);
+			for (int i = 0; i < static_cast<int>(keywordmap.size()); i++ ) {
+				if ( new_symbol == keywordmap[i] ) return true;
+			}
+		}
+		return false;
+	}
+
 	inline bool hasFeaturemap(const std::string& extension) const {
 		if (featuremaps.find(extension) != featuremaps.end()) {
 			return true;
 		}
 		return false;
 	}
-
-	/********************************
-	*	FEATUREMAPS FUNCTION ACCESS	*
-	*********************************/
-
-	inline std::string supportCommandEnding(const std::string& extension) const {
-		if (hasFeaturemap(extension)) {
-			if (featuremaps.at(extension).at("command_ending").first) return featuremaps.at(extension).at("command_ending").second;
-		}
-		return "";
-	}
-
-	inline std::string supportArrowPointer(const std::string& extension) const {
-		if (hasFeaturemap(extension)) {
-			if (featuremaps.at(extension).at("arrow_pointer").first) return featuremaps.at(extension).at("arrow_pointer").second;
-		}
-		return "";
-	}
-
-	inline std::string supportComment(const std::string& extension) const {
-		if (hasFeaturemap(extension)) {
-			if (featuremaps.at(extension).at("comment").first) return featuremaps.at(extension).at("comment").second;
-		}
-		return "";
-	}
-
-	inline std::string supportMultilineComment(const std::string& extension) const {
-		if (hasFeaturemap(extension)) {
-			if (featuremaps.at(extension).at("multiline_comment").first) return featuremaps.at(extension).at("multiline_comment").second;
-		}
-		return "";
-	}
-
 
 	// Init function for more colors, not used right now
 	inline void initMoreColors() const {
@@ -111,26 +123,30 @@ class syntaxHighlighter {
 		}
 	}
 
+	inline void pushString(std::vector<std::pair<size_t, std::string>> vector, const std::string& line, const std::string& string) const {
+		vector.push_back(std::pair<size_t, std::string>(line.find(string), string));
+	}
+
 	// Proudly (?) stolen (and modified a bit) from stackoverflow: https://stackoverflow.com/questions/5888022/split-string-by-single-spaces
 	std::vector<std::string> splitBySpecialChars(const std::string& line) const {
 		std::vector<std::pair<size_t, std::string>> positions;
-		positions.push_back(std::pair<size_t, std::string>(line.find(" "), " "));
-		positions.push_back(std::pair<size_t, std::string>(line.find("\t"), "\t"));
-		positions.push_back(std::pair<size_t, std::string>(line.find(";"), ";"));
-		positions.push_back(std::pair<size_t, std::string>(line.find("("), "("));
-		positions.push_back(std::pair<size_t, std::string>(line.find("["), "["));
-		positions.push_back(std::pair<size_t, std::string>(line.find("{"), "{"));
-		positions.push_back(std::pair<size_t, std::string>(line.find(")"), ")"));
-		positions.push_back(std::pair<size_t, std::string>(line.find("]"), "]"));
-		positions.push_back(std::pair<size_t, std::string>(line.find("}"), "}"));
-		positions.push_back(std::pair<size_t, std::string>(line.find("->"), "->"));
-		positions.push_back(std::pair<size_t, std::string>(line.find("\""), "\""));
+		pushString(positions, line, " ");
+		pushString(positions, line, "\t");
+		pushString(positions, line, ";");
+		pushString(positions, line, "(");
+		pushString(positions, line, "[");
+		pushString(positions, line, "{");
+		pushString(positions, line, ")");
+		pushString(positions, line, "]");
+		pushString(positions, line, "}");
+		pushString(positions, line, "->");
+		pushString(positions, line, "\"");
+		pushString(positions, line, "\'");
+		pushString(positions, line, "#");
 		size_t initialPos = 0;
 		std::vector<std::string> finalVector;
 		finalVector.clear();
-
-		// Decompose statement (Became very messy, TODO: fix)
-		while(positions[0].first != std::string::npos || positions[1].first != std::string::npos || positions[2].first != std::string::npos || positions[3].first != std::string::npos || positions[4].first != std::string::npos || positions[5].first != std::string::npos || positions[6].first != std::string::npos || positions[7].first != std::string::npos || positions[8].first != std::string::npos || positions[9].first != std::string::npos || positions[10].first != std::string::npos) {
+		while(positions[0].first != std::string::npos || positions[1].first != std::string::npos || positions[2].first != std::string::npos || positions[3].first != std::string::npos || positions[4].first != std::string::npos || positions[5].first != std::string::npos || positions[6].first != std::string::npos || positions[7].first != std::string::npos || positions[8].first != std::string::npos || positions[9].first != std::string::npos || positions[10].first != std::string::npos || positions[11].first != std::string::npos || positions[12].first != std::string::npos) {
 			int min = 0;
 			for (int i = 0; i < static_cast<int>(positions.size() - 1); i++ ) {
 				if (positions[i].first < positions[i+1].first) {
@@ -150,8 +166,6 @@ class syntaxHighlighter {
 			}
 			positions[min].first = line.find(positions[min].second, initialPos);
 		}
-
-		// Add the last one
 		int max = 0;
 		for (int i = 0; i < static_cast<int>(positions.size() + 1); i++ ) {
 			if (positions[i].first > positions[i+1].first) {
@@ -162,13 +176,100 @@ class syntaxHighlighter {
 				max = i+1;
 			}
 		}
-
 		finalVector.push_back(line.substr(initialPos,std::min(positions[max].first, line.size()) - initialPos + 1));
-
 		return finalVector;
 	}
 	
 	private:
+
+	/*********************
+	* STANDARD	KEYWORDS *
+	**********************/
+
+	std::vector<std::string> cppKeywords{
+		""
+	};
+
+	std::vector<std::string> cKeywords{
+		"int",
+		"bool",
+		"float",
+		"void",
+		"nullptr",
+		"char",
+		"long",
+		"unsigned",
+		"signed",
+		"short",
+		"string",
+		"using",
+		"namespace"
+	};
+
+	const std::vector<std::string> pythonKeywords{
+		""
+	};
+	
+	const std::vector<std::string> javaKeywords{
+		""
+	};
+
+	const std::vector<std::string> haskellKeywords{
+		""
+	};
+
+	const std::vector<std::string> htmlKeywords{
+		""
+	};
+
+	const std::vector<std::string> jsKeywords{
+		""
+	};
+
+	const std::vector<std::string> tsKeywords{
+		""
+	};
+
+	const std::vector<std::string> cssKeywords{
+		""
+	};
+
+	const std::vector<std::string> rubyKeywords{
+		""
+	};
+
+	const std::vector<std::string> rustKeywords{
+		""
+	};
+
+	const std::vector<std::string> perlKeywords{
+		""
+	};
+
+	const std::vector<std::string> bashKeywords{
+		""
+	};
+
+	const std::vector<std::string> csharpKeywords{
+		""
+	};
+
+	const std::unordered_map<std::string, std::vector<std::string>> keywordmaps{
+		{"cpp", cppKeywords},
+		{"c", cKeywords},
+		{"python", pythonKeywords},
+		{"java", javaKeywords},
+		{"haskell", haskellKeywords},
+		{"html", htmlKeywords},
+		{"js", jsKeywords},
+		{"ts", tsKeywords},
+		{"css", cssKeywords},
+		{"ruby", rubyKeywords},
+		{"rust", rustKeywords},
+		{"perl", perlKeywords},
+		{"bash", bashKeywords},
+		{"csharp", csharpKeywords}
+	};
 
 	/****************************
 	*	STANDARD	HASHMAPS	*
@@ -179,10 +280,10 @@ class syntaxHighlighter {
 	};
 	const std::unordered_map<std::string, std::pair<int, int>> cHashmap{
 		{"preprocessor", std::pair<int, int>(PAIR_SYNTAX_RED, PAIR_SYNTAX_RED)},
-		{"after_preprocessor", std::pair<int, int>(PAIR_SYNTAX_YELLOW, PAIR_SYNTAX_YELLOW)},
+		{"after_preprocessor", std::pair<int, int>(PAIR_SYNTAX_MAGENTA, PAIR_SYNTAX_MAGENTA)},
 		{"keyword", std::pair<int, int>(PAIR_SYNTAX_CYAN, PAIR_SYNTAX_CYAN)},
 		{"__reserved_string_color__", std::pair<int, int>(PAIR_SYNTAX_RED, PAIR_SYNTAX_RED)},
-		{"semicolon",  std::pair<int, int>(PAIR_SYNTAX_YELLOW, PAIR_SYNTAX_YELLOW)}
+		{"statement_end",  std::pair<int, int>(PAIR_SYNTAX_YELLOW, PAIR_SYNTAX_YELLOW)}
 	};
 	const std::unordered_map<std::string, std::pair<int, int>> pythonHashmap{
 		{}
@@ -230,10 +331,11 @@ class syntaxHighlighter {
 		{}
 	};
 	const std::unordered_map<std::string, std::pair<bool, std::string>> cFeatures{
-		{"command_ending", std::pair(true, ";")},
-		{"comment", std::pair(true, "//")},
-		{"arrow_pointer", std::pair(true, "->")},
-		{"multiline_comment", std::pair(true, "/*	*/")}
+		{"preprocessor", {true, "#"}},
+		{"statement_end", {true, ";"}},
+		{"comment", {true, "//"}},
+		{"arrow_pointer", {true, "->"}},
+		{"multiline_comment", {true, "/*	*/"}}
 	};
 	const std::unordered_map<std::string, std::pair<bool, std::string>> pythonFeatures{
 		{}
@@ -289,7 +391,6 @@ class syntaxHighlighter {
 		{"csharp", csharpFeatures}
 	};
 
-	// Normal definitions
 	std::unordered_map<std::string, std::unordered_map<std::string, std::pair<int, int>>> hashmaps{
 		{"cpp", cppHashmap},
 		{"c", cHashmap},
@@ -306,8 +407,7 @@ class syntaxHighlighter {
 		{"bash", bashHashmap},
 		{"csharp", csharpHashmap}
 	};
-	std::string currentWord;
-
+	std::string nextSymbol{""};
 	// Boolean mess for syntax highlighting (sorry)
 	bool isPreprocessor{false};
 	bool afterPreprocessor{false};
