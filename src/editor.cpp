@@ -2,14 +2,8 @@
 #include <ncurses.h>
 #include <unordered_map>
 
-// Color pairs defines:
-#define PAIR_STANDARD 1
-#define PAIR_ERROR 2
-#define PAIR_WARNING 3
-#define PAIR_INFO 4
-
 Editor::Editor(const std::string& filePath) 
-	: file(filePath), 
+	: file(filePath),
 	scrollX(0),
 	scrollY(0),
 	width(getmaxx(stdscr)), 
@@ -19,6 +13,7 @@ Editor::Editor(const std::string& filePath)
 	if (!file.hasWritePermission()) {
 		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
 	}
+	if (can_change_color()) syntaxHG.initMoreColors();
 	initColorPairs();
 }
 
@@ -27,7 +22,7 @@ void Editor::draw() {
 	for (int lineNr = scrollY; lineNr < scrollY + height && lineNr < file.linesAmount(); lineNr++) {
 		std::string_view line { file.getLine(lineNr) };
 		move(lineNr - scrollY, 0);
-		printw("%3d %s", lineNr + 1, line.data());
+		syntaxHG.parseLine(line.data(), lineNr);
 	}
 
 	// turn on and set color for status
@@ -235,4 +230,5 @@ void Editor::initColorPairs() const {
 	init_pair(PAIR_STANDARD, COLOR_WHITE, COLOR_BLACK);
 	init_pair(PAIR_WARNING, COLOR_WHITE, COLOR_RED);
 	init_pair(PAIR_INFO, COLOR_WHITE, COLOR_BLUE);
+	init_pair(PAIR_OPEN_CLOSE_SYMBOL, COLOR_WHITE, COLOR_GREEN);
 }

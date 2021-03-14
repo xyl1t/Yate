@@ -2,7 +2,15 @@
 #define EDITOR_HPP
 
 #include "fileEditor.hpp"
+#include "syntaxHighlighter.hpp"
 #include <string>
+
+// Color pairs defines:
+#define PAIR_STANDARD 1
+#define PAIR_ERROR 2
+#define PAIR_WARNING 3
+#define PAIR_INFO 4
+#define PAIR_OPEN_CLOSE_SYMBOL 5
 
 class Editor {
 public:
@@ -43,6 +51,7 @@ public:
     
 private:
 	FileEditor file;
+	syntaxHighlighter syntaxHG{};
 	
 	int scrollX;
 	int scrollY;
