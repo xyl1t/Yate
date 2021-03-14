@@ -8,9 +8,17 @@
 // Color pairs defines:
 #define PAIR_STANDARD 1
 #define PAIR_ERROR 2
-#define PAIR_WARNING 3
-#define PAIR_INFO 4
-#define PAIR_OPEN_CLOSE_SYMBOL 5
+#define PAIR_INFO 3
+#define PAIR_OPEN_CLOSE_SYMBOL 4
+#define PAIR_RESERVED_FOR_CUSTOM 5
+// Basic color pairs for syntax highlighting:
+#define PAIR_SYNTAX_RED 11
+#define PAIR_SYNTAX_WHITE 12
+#define PAIR_SYNTAX_CYAN 13
+#define PAIR_SYNTAX_MAGENTA 14
+#define PAIR_SYNTAX_YELLOW 15
+#define PAIR_SYNTAX_GREEN 16
+#define PAIR_SYNTAX_BLUE 17
 
 class Editor {
 public:

@@ -11,30 +11,38 @@ Editor::Editor(const std::string& filePath)
     alive(true) {
 	resetStatus();
 	if (!file.hasWritePermission()) {
-		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
+		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
 	}
-	if (can_change_color()) syntaxHG.initMoreColors();
 	initColorPairs();
 }
 
 void Editor::draw() {
 	clear();
+	syntaxHG.resetAllFlags();
 	for (int lineNr = scrollY; lineNr < scrollY + height && lineNr < file.linesAmount(); lineNr++) {
 		std::string_view line { file.getLine(lineNr) };
 		move(lineNr - scrollY, 0);
-		syntaxHG.parseLine(line.data(), lineNr);
+		if (has_colors()) {
+			syntaxHG.parseLine(line.data(), lineNr, file.getFileExtension());
+		} else {
+			printw("%3d %s", lineNr + 1, line.data());
+		}
 	}
 
-	// turn on and set color for status
+	// Turn on and set color for status
 	attron(A_STANDOUT);
-	attron(COLOR_PAIR(this->colorPair));
+	if (has_colors()) {
+		attron(COLOR_PAIR(this->colorPair));
+	}
 	
-	// print status at bottom of screen
+	// Print status at bottom of screen
 	mvprintw(getmaxy(stdscr) - 1, 0, this->statusText.c_str());
 
-	attroff(COLOR_PAIR(this->colorPair));
-	// Reset color pair:
-	this->colorPair = PAIR_STANDARD;
+	if (has_colors()) {
+		attroff(COLOR_PAIR(this->colorPair));
+		// Reset color pair:
+		this->colorPair = PAIR_STANDARD;
+	}
 	attroff(A_STANDOUT);
 
 	std::string cursorText = file.getLine(file.getCarretY()).substr(0, file.getCarretX());
@@ -51,7 +59,7 @@ void Editor::getInput() {
 	if(input >= 32 && input < 127) {
 		file.put(static_cast<char>(input));
 		if(!file.hasWritePermission()) {
-			setStatus(" Warning: File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
+			setStatus(" Warning: File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
 		}
 	}
 	else
@@ -114,6 +122,7 @@ void Editor::getInput() {
 		}
 #ifndef NDEBUG
 		setStatus(this->statusText + "\tinput: " + std::to_string(input), PAIR_STANDARD);
+		setStatus(this->statusText + "\tCOLORS: " + std::to_string(COLORS), PAIR_STANDARD);
 #endif
 	}
 }
@@ -228,7 +237,15 @@ void Editor::resetStatus() {
 void Editor::initColorPairs() const {
 	init_pair(PAIR_ERROR, COLOR_WHITE, COLOR_RED);
 	init_pair(PAIR_STANDARD, COLOR_WHITE, COLOR_BLACK);
-	init_pair(PAIR_WARNING, COLOR_WHITE, COLOR_RED);
-	init_pair(PAIR_INFO, COLOR_WHITE, COLOR_BLUE);
+	init_pair(PAIR_INFO, COLOR_WHITE, COLOR_CYAN);
 	init_pair(PAIR_OPEN_CLOSE_SYMBOL, COLOR_WHITE, COLOR_GREEN);
+	// For syntax highlighting
+	init_pair(PAIR_SYNTAX_BLUE, COLOR_BLUE, COLOR_BLACK);
+	init_pair(PAIR_SYNTAX_WHITE, COLOR_WHITE, COLOR_BLACK);
+	init_pair(PAIR_SYNTAX_CYAN, COLOR_CYAN, COLOR_BLACK);
+	init_pair(PAIR_SYNTAX_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
+	init_pair(PAIR_SYNTAX_YELLOW, COLOR_YELLOW, COLOR_BLACK);
+	init_pair(PAIR_SYNTAX_GREEN, COLOR_GREEN, COLOR_BLACK);
+	init_pair(PAIR_SYNTAX_RED, COLOR_RED, COLOR_BLACK);
+
 }

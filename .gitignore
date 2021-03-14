@@ -3,3 +3,4 @@ build/
 *.txt
 !CMakeLists.txt
 Makefile
+example*
