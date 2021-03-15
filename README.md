@@ -14,4 +14,4 @@ make
 ```
 
 # License
-This project is licensed under the [MIT License](https://www.tldrlegal.com/l/mit/)
+This project is licensed under the [MIT License](https://github.com/xyl1t/Yate/blob/master/LICENSE)
