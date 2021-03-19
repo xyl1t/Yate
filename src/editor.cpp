@@ -85,7 +85,7 @@ void Editor::getInput() {
 				break;
 			case 5:
 			case KEY_END:
-				moveEndOfLine();
+				moveEndOfLine(); 
 				break;
 			case KEY_HOME:
 			case 1:
@@ -93,10 +93,10 @@ void Editor::getInput() {
 				break;
 			case 25: // CTRL+Y (for qwertz layout)
 			case 26: // CTRL+Z (for qwerty layout)
-				moveBeginningOfText();
+				moveBeginningOfText(); // TODO: FIX
 				break;
 			case 24: // CTRL+X
-				moveEndOfText();
+				moveEndOfText(); // TODO: FIX
 				break;
 			case KEY_ENTER:
 			case 10:
@@ -225,26 +225,26 @@ void Editor::moveRight() {
 }
 
 void Editor::moveBeginningOfLine() {
-	file.setCaretLocation(0, file.getCaretY());
+	setCaretLocation(0, caret.y);
+}
+void Editor::moveEndOfLine() {
+	setCaretLocation(getVirtualLineLength(), caret.y);
 }
 void Editor::moveBeginningOfText() {
-	if(file.getCaretX() == 0 && file.getCaretY() == 0) return;
+	if(caret.x == 0 && caret.y == 0) return;
 
-	file.moveLeft();
+	moveLeft();
 	while(file.getLine()[file.getCaretX() - 1] != ' ' && file.getLine()[file.getCaretX() - 1] != '\t' && file.getCaretX() != 0) {
-		file.moveLeft();
+		moveLeft();
 	}
 }
 void Editor::moveEndOfText() {
-	if(file.getCaretX() == file.getLineSize() && file.getCaretY() == file.linesAmount()) return;
+	if(caret.x == getVirtualLineLength() && caret.y == file.linesAmount()) return;
 
-	file.moveRight();
+	moveRight();
 	while(file.getLine()[file.getCaretX()] != ' ' && file.getLine()[file.getCaretX()] != '\t' && file.getCaretX() != file.getLineSize()) {
-		file.moveRight();
+		moveRight();
 	}
-}
-void Editor::moveEndOfLine() {
-	file.setCaretLocation(file.getLineSize(), file.getCaretY());
 }
 void Editor::newLine() {
 	file.newLine();
