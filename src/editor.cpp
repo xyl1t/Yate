@@ -175,24 +175,6 @@ void Editor::moveUp() {
 	
 	if(scrollY - file.getCaretY() == 0)
 		scrollUp();
-	#pragma region old
-	// int countBefore = getCharsCountBeforeCursor();
-	
-	// file.moveUp();
-	
-	// int countAfter = getCharsCountBeforeCursor();
-	// if(countBefore < countAfter) {
-	// 	setStatus(statusText + " AAAAA");
-	// 	do {
-	// 		moveLeft();
-	// 	} while(countBefore < getCharsCountBeforeCursor());
-	// } else if(countBefore > countAfter) {
-	// 	setStatus("A");
-	// 	do {
-	// 		moveRight();
-	// 	} while(countBefore > getCharsCountBeforeCursor());
-	// }
-	#pragma endregion old
 }
 void Editor::moveDown() {
 	if(caret.y + 1 < file.linesAmount()) {
@@ -213,30 +195,6 @@ void Editor::moveDown() {
 	
 	if((scrollY + height) - file.getCaretY() - 1 == 0)
 		scrollDown();	
-	#pragma region old
-	// int countBefore = getCharsCountBeforeCursor();
-	
-	// file.moveDown();
-	
-	// int countAfter = getCharsCountBeforeCursor();
-	// if(countBefore < countAfter) {
-	// 	setStatus(statusText + " AAAAA");
-	// 	do {
-	// 		moveLeft();
-	// 	} while(countBefore < getCharsCountBeforeCursor());
-	// } else if(countBefore > countAfter) {
-	// 	setStatus(statusText + " AAAAA");
-	// 	do {
-	// 		moveRight();
-	// 	} while(countBefore > getCharsCountBeforeCursor());
-	// }
-	#pragma endregion
-/*
-TextTextText
-asdf	asdf
-TextTextText
-
-*/
 }
 void Editor::moveLeft() {
 	if(getOnScreenCursorX() == 0)
