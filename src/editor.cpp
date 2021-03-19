@@ -164,9 +164,9 @@ void Editor::moveUp() {
 			caret.x = getVirtualLineLength();
 			file.setCaretLocation(file.getLineSize(), file.getCaretY());
 		} else {
-			caret.x = caret.savedX;
 			file.setCaretLocation(getFileCaretColumn(caret.savedX), file.getCaretY());
-		}
+			caret.x = getVirtualCaretColumn(file.getCaretX(), file.getCaretY());
+		} 
 	} else {
 		caret.y = 0;
 		caret.x = caret.savedX = 0;
@@ -202,9 +202,9 @@ void Editor::moveDown() {
 			caret.x = getVirtualLineLength();
 			file.setCaretLocation(file.getLineSize(), file.getCaretY());
 		} else {
-			caret.x = caret.savedX;
 			file.setCaretLocation(getFileCaretColumn(caret.savedX), file.getCaretY());
-		}
+			caret.x = getVirtualCaretColumn(file.getCaretX(), file.getCaretY());
+		} 
 	} else {
 		caret.y = file.linesAmount() - 1;
 		caret.x = caret.savedX = getVirtualCaretColumn(file.getLineSize(), file.linesAmount() - 1);
@@ -231,7 +231,12 @@ void Editor::moveDown() {
 	// 	} while(countBefore > getCharsCountBeforeCursor());
 	// }
 	#pragma endregion
-	
+/*
+TextTextText
+asdf	asdf
+TextTextText
+
+*/
 }
 void Editor::moveLeft() {
 	if(getOnScreenCursorX() == 0)
@@ -326,10 +331,10 @@ void Editor::resetStatus() {
 	char buffer[256];
 	sprintf(
 		buffer, 
-		" File: %s\tRow %2d, Col %2d | c.x %2d, c.y %2d | f.x %2d, f.y %2d", 
+		" File: %s\tRow %2d, Col %2d | c.x %2d, c.y %2d, c.sx %2d | f.x %2d, f.y %2d", 
 		file.getFullFilename().c_str(), 
 		file.getCaretY() + 1, file.getCaretX() + 1, 
-		caret.x, caret.y, 
+		caret.x, caret.y, caret.savedX, 
 		file.getCaretX(), file.getCaretY()
 	);
 	setStatus(buffer);

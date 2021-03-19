@@ -124,7 +124,9 @@ private:
 			} else {
 				col++;
 			}
-			size++;
+			if(col <= virtualColumn) {
+				size++;
+			}
 		}
 		return size;
 	}
