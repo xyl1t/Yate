@@ -249,7 +249,7 @@ void Editor::moveEndOfLine() {
 void Editor::newLine() {
 	file.newLine();
     moveDown();
-	file.setCaretLocation(0, file.getCaretY());
+	setCaretLocation(0, caret.y);
 }
 void Editor::deleteCharL() {
 	try {
