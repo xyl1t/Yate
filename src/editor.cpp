@@ -54,7 +54,7 @@ void Editor::draw() {
 	// std::string cursorText = file.getLine(file.getCaretY()).substr(0, file.getCaretX());
 	// mvprintw(file.getCaretY() - scrollY, 4, cursorText.c_str());
 	
-	move(caret.y, caret.x + 4);
+	move(caret.y - scrollY, caret.x + 4);
 	refresh();
 }
 
@@ -158,6 +158,9 @@ void Editor::scrollRight() {
 }
 
 void Editor::moveUp() {
+	if(scrollY - file.getCaretY() >= 0)
+		scrollUp();
+		
 	if(caret.y - 1 >= 0) {
 		caret.y--;
 		file.moveUp();
@@ -173,11 +176,12 @@ void Editor::moveUp() {
 		caret.x = caret.savedX = 0;
 		file.setCaretLocation(0, 0);
 	}
-	
-	if(scrollY - file.getCaretY() == 0)
-		scrollUp();
 }
 void Editor::moveDown() {
+	if((scrollY + height) - caret.y - 1 <= 0) {
+		scrollDown();
+	}
+	
 	if(caret.y + 1 < file.linesAmount()) {
 		caret.y++;
 		file.moveDown();
@@ -194,8 +198,6 @@ void Editor::moveDown() {
 		file.setCaretLocation(file.getLineSize(), file.linesAmount() - 1);
 	}
 	
-	if((scrollY + height) - file.getCaretY() - 1 == 0)
-		scrollDown();	
 }
 void Editor::moveLeft() {
 	if(getOnScreenCursorX() == 0)
