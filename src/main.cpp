@@ -1,6 +1,7 @@
 #include <ncurses.h>
 #include "fileEditor.hpp"
 #include "editor.hpp"
+#include <iostream>
 
 // Yate: Yet Another Text Editor
 // Originally created by Xylit (@Xyl1t)
@@ -22,6 +23,7 @@ int main(int argc, char** argv) {
 	if(argc > 1) {
 		path = std::string(argv[1]);
 	}
+	int tabSize = 4;
 	
 	initscr();
 	start_color();
@@ -29,8 +31,9 @@ int main(int argc, char** argv) {
 	refresh();
 	noecho();
 	keypad(stdscr, true);
+	set_tabsize(tabSize); // TODO: make this an option: -t <tab_size>
 	
-	Editor editor { path };
+	Editor editor { path, tabSize };
 	
 	while(editor.isAlive()) {
 		editor.draw();

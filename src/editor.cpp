@@ -8,13 +8,15 @@
 #define PAIR_WARNING 3
 #define PAIR_INFO 4
 
-Editor::Editor(const std::string& filePath) 
+Editor::Editor(const std::string& filePath, int tabSize) 
 	: file(filePath), 
+	TAB_SIZE(tabSize),
 	scrollX(0),
 	scrollY(0),
-	width(getmaxx(stdscr)), 
+	width(getmaxx(stdscr) - 4), 
 	height(getmaxy(stdscr) - 2),
-    alive(true) {
+    alive(true),
+	caret() {
 	resetStatus();
 	if (!file.hasWritePermission()) {
 		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
@@ -25,9 +27,16 @@ Editor::Editor(const std::string& filePath)
 void Editor::draw() {
 	clear();
 	for (int lineNr = scrollY; lineNr < scrollY + height && lineNr < file.linesAmount(); lineNr++) {
-		std::string_view line { file.getLine(lineNr) };
+		std::string line { file.getLine(lineNr) };
 		move(lineNr - scrollY, 0);
-		printw("%3d %s", lineNr + 1, line.data());
+		int min = getTextEditorWidth();
+		if((int)line.length() - scrollX < min) 
+			min = line.length() - scrollX;
+		if((int)line.length() < scrollX) 
+			line = "";
+		else
+			line = line.substr(scrollX, min);
+		printw("%3d %s", lineNr + 1, line.c_str());
 	}
 
 	// turn on and set color for status
@@ -42,16 +51,15 @@ void Editor::draw() {
 	this->colorPair = PAIR_STANDARD;
 	attroff(A_STANDOUT);
 
-	std::string cursorText = file.getLine(file.getCarretY()).substr(0, file.getCarretX());
-    mvprintw(file.getCarretY() - scrollY, 4, cursorText.c_str());
+	// std::string cursorText = file.getLine(file.getCaretY()).substr(0, file.getCaretX());
+	// mvprintw(file.getCaretY() - scrollY, 4, cursorText.c_str());
+	
+	move(caret.y, caret.x + 4);
 	refresh();
 }
 
 void Editor::getInput() {
 	int input = getch();
-	
-	// Reset status, if input recieved
-	resetStatus();
 
 	if(input >= 32 && input < 127) {
 		file.put(static_cast<char>(input));
@@ -117,10 +125,18 @@ void Editor::getInput() {
 				exit(0);
 				break;
 		}
-#ifndef NDEBUG
-		setStatus(this->statusText + "\tinput: " + std::to_string(input), PAIR_STANDARD);
-#endif
 	}
+
+	// Reset status on user input if no custom status was applied, if there is a custom status, let it display first and then reset
+	if(!customStatusText) {
+		resetStatus();
+	}
+	customStatusText = false;
+	
+#ifndef NDEBUG
+		setStatus(this->statusText + "\tinput: " + std::to_string(input), this->colorPair);
+		customStatusText = false;
+#endif
 }
 
 void Editor::scrollUp() {
@@ -132,67 +148,149 @@ void Editor::scrollDown() {
 		scrollY++;
 }
 void Editor::scrollLeft() {
-	if(scrollY > 0)
+	// if(scrollY > 0)
 		scrollX--;
 }
 void Editor::scrollRight() {
-	if(scrollX + width < file.getLineSize() - 1)
+	// if(scrollX + getTextEditorWidth() < file.getLineSize() - 1)
 		scrollX++;
 }
 
 void Editor::moveUp() {
-	if(scrollY - file.getCarretY() == 0)
+	if(caret.y - 1 >= 0) {
+		caret.y--;
+		file.moveUp();
+		if (getVirtualLineLength() < caret.savedX) {
+			caret.x = getVirtualLineLength();
+			file.setCaretLocation(file.getLineSize(), file.getCaretY());
+		} else {
+			caret.x = caret.savedX;
+			file.setCaretLocation(getFileCaretColumn(caret.savedX), file.getCaretY());
+		}
+	} else {
+		caret.y = 0;
+		caret.x = caret.savedX = 0;
+		file.setCaretLocation(0, 0);
+	}
+	
+	if(scrollY - file.getCaretY() == 0)
 		scrollUp();
-	file.moveUp();
+	#pragma region old
+	// int countBefore = getCharsCountBeforeCursor();
+	
+	// file.moveUp();
+	
+	// int countAfter = getCharsCountBeforeCursor();
+	// if(countBefore < countAfter) {
+	// 	setStatus(statusText + " AAAAA");
+	// 	do {
+	// 		moveLeft();
+	// 	} while(countBefore < getCharsCountBeforeCursor());
+	// } else if(countBefore > countAfter) {
+	// 	setStatus("A");
+	// 	do {
+	// 		moveRight();
+	// 	} while(countBefore > getCharsCountBeforeCursor());
+	// }
+	#pragma endregion old
 }
 void Editor::moveDown() {
-	if((scrollY + height) - file.getCarretY() - 1 == 0)
-		scrollDown();
-	file.moveDown();
+	if(caret.y + 1 < file.linesAmount()) {
+		caret.y++;
+		file.moveDown();
+		if (getVirtualLineLength() < caret.savedX) {
+			caret.x = getVirtualLineLength();
+			file.setCaretLocation(file.getLineSize(), file.getCaretY());
+		} else {
+			caret.x = caret.savedX;
+			file.setCaretLocation(getFileCaretColumn(caret.savedX), file.getCaretY());
+		}
+	} else {
+		caret.y = file.linesAmount() - 1;
+		caret.x = caret.savedX = getVirtualCaretColumn(file.getLineSize(), file.linesAmount() - 1);
+		file.setCaretLocation(file.getLineSize(), file.linesAmount() - 1);
+	}
+	
+	if((scrollY + height) - file.getCaretY() - 1 == 0)
+		scrollDown();	
+	#pragma region old
+	// int countBefore = getCharsCountBeforeCursor();
+	
+	// file.moveDown();
+	
+	// int countAfter = getCharsCountBeforeCursor();
+	// if(countBefore < countAfter) {
+	// 	setStatus(statusText + " AAAAA");
+	// 	do {
+	// 		moveLeft();
+	// 	} while(countBefore < getCharsCountBeforeCursor());
+	// } else if(countBefore > countAfter) {
+	// 	setStatus(statusText + " AAAAA");
+	// 	do {
+	// 		moveRight();
+	// 	} while(countBefore > getCharsCountBeforeCursor());
+	// }
+	#pragma endregion
+	
 }
 void Editor::moveLeft() {
-	if(file.getCarretX() >= file.getLineSize())
+	if(getOnScreenCursorX() == 0)
 		scrollLeft();
-	file.moveLeft();
+	
+	if(caret.x > 0) {
+		file.moveLeft();
+		caret.x = caret.savedX = getVirtualCaretColumn(getFileCaretColumn(), caret.y);
+	} else if(caret.y > 0) {
+		moveUp();
+		caret.x = caret.savedX = getVirtualCaretColumn(file.getLineSize(caret.y), caret.y);
+		file.setCaretLocation(file.getLineSize(caret.y), file.getCaretY());
+	}
 }
 void Editor::moveRight() {
-	if(file.getCarretX() > 0) 
+	if(getOnScreenCursorX() >= getTextEditorWidth() - 1) 
 		scrollRight();
-	file.moveRight();
+	
+	if (caret.x < getVirtualCaretColumn(file.getLineSize(caret.y), caret.y)) {
+		file.moveRight();
+		caret.x = caret.savedX = getVirtualCaretColumn(getFileCaretColumn(), caret.y);
+	} else if (caret.y < file.linesAmount() - 1) {
+		moveDown();
+		caret.x = caret.savedX = 0;
+		file.setCaretLocation(0, file.getCaretY());
+	}
 }
 
 void Editor::moveBeginningOfLine() {
-	file.setCarretLocation(0, file.getCarretY());
+	file.setCaretLocation(0, file.getCaretY());
 }
 void Editor::moveBeginningOfText() {
-	if(file.getCarretX() == 0 && file.getCarretY() == 0) return;
+	if(file.getCaretX() == 0 && file.getCaretY() == 0) return;
 
 	file.moveLeft();
-	while(file.getLine()[file.getCarretX() - 1] != ' ' && file.getLine()[file.getCarretX() - 1] != '\t' && file.getCarretX() != 0) {
+	while(file.getLine()[file.getCaretX() - 1] != ' ' && file.getLine()[file.getCaretX() - 1] != '\t' && file.getCaretX() != 0) {
 		file.moveLeft();
 	}
 }
 void Editor::moveEndOfText() {
-	if(file.getCarretX() == file.getLineSize() && file.getCarretY() == file.linesAmount()) return;
+	if(file.getCaretX() == file.getLineSize() && file.getCaretY() == file.linesAmount()) return;
 
 	file.moveRight();
-	while(file.getLine()[file.getCarretX()] != ' ' && file.getLine()[file.getCarretX()] != '\t' && file.getCarretX() != file.getLineSize()) {
+	while(file.getLine()[file.getCaretX()] != ' ' && file.getLine()[file.getCaretX()] != '\t' && file.getCaretX() != file.getLineSize()) {
 		file.moveRight();
 	}
 }
 void Editor::moveEndOfLine() {
-	file.setCarretLocation(file.getLineSize(), file.getCarretY());
+	file.setCaretLocation(file.getLineSize(), file.getCaretY());
 }
 void Editor::newLine() {
 	file.newLine();
     moveDown();
-	file.setCarretLocation(0, file.getCarretY());
-
+	file.setCaretLocation(0, file.getCaretY());
 }
 void Editor::deleteCharL() {
-	try{
+	try {
 		file.del(false);
-    	if(file.getCarretY() - scrollY < 0) {
+    	if(file.getCaretY() - scrollY < 0) {
         	scrollY--;
     	}
 	} catch(std::string e) {
@@ -200,7 +298,7 @@ void Editor::deleteCharL() {
 	}
 }
 void Editor::deleteCharR() {
-	try{
+	try {
 		file.del(true);
 	} catch(std::string e) {
 		setStatus(e, PAIR_ERROR);
@@ -208,11 +306,11 @@ void Editor::deleteCharR() {
 }
 
 void Editor::saveFile() {
-	if (!file.hasWritePermission()) {
-		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
-	} else {
+	if (file.hasWritePermission()) {
 		setStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);
 		file.save();
+	} else {
+		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
 	}
 }
 
@@ -222,10 +320,18 @@ void Editor::setStatus(const std::string& message) {
 void Editor::setStatus(const std::string& message, int colorPair) {
 	this->statusText = message;
 	this->colorPair = colorPair;
+	customStatusText = true;
 }
 void Editor::resetStatus() {
 	char buffer[256];
-	sprintf(buffer, " File: %s\tRow %2d, Col %2d ", file.getFullFilename().c_str(), file.getCarretY() + 1, file.getCarretX() + 1);
+	sprintf(
+		buffer, 
+		" File: %s\tRow %2d, Col %2d | c.x %2d, c.y %2d | f.x %2d, f.y %2d", 
+		file.getFullFilename().c_str(), 
+		file.getCaretY() + 1, file.getCaretX() + 1, 
+		caret.x, caret.y, 
+		file.getCaretX(), file.getCaretY()
+	);
 	setStatus(buffer);
 }
 

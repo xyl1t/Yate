@@ -18,7 +18,7 @@ namespace  fs = std::filesystem;
 #endif
 
 FileEditor::FileEditor(const std::string& path) 
-	: carret{}, 
+	: caret{}, 
 	path{path},
 	fullFilename {},
 	filename {},
@@ -89,101 +89,100 @@ FileEditor::FileEditor(const std::string& path)
 	{
 		std::string line{""};
 		std::getline(file, line);
-        if(!file) break;
+		if(!file) break;
 		lines.push_back(line);
 	}
-
-	// TODO: File checking is applying only to linux systems, need to implement this on mac os and windows.
 }
 
+#if 0
 void FileEditor::moveUp() {
-	if(carret.y - 1 >= 0) {
-		carret.y -= 1;
-		if(getLineSize(carret.y) < carret.maxX) {
-			carret.x = getLineSize(carret.y);
+	if(caret.y - 1 >= 0) {
+		caret.y -= 1;
+		if(getLineSize(caret.y) < caret.maxX) {
+			caret.x = getLineSize(caret.y);
 		}
 		else
-			carret.x = carret.maxX;
+			caret.x = caret.maxX;
 	}
-	else if(carret.y - 1 < 0) {
-		carret.y = 0;
-		carret.x = carret.maxX = 0;
+	else if(caret.y - 1 < 0) {
+		caret.y = 0;
+		caret.x = caret.maxX = 0;
 	}
 }
 void FileEditor::moveDown() {
-	if(carret.y + 1 < linesAmount()) {
-		carret.y += 1;
-		if(getLineSize(carret.y) < carret.maxX) 
-			carret.x = getLineSize(carret.y);
+	if(caret.y + 1 < linesAmount()) {
+		caret.y += 1;
+		if(getLineSize(caret.y) < caret.maxX) 
+			caret.x = getLineSize(caret.y);
 		else 
-			carret.x = carret.maxX;
+			caret.x = caret.maxX;
 	}
-	else if(carret.y + 1 >= linesAmount() - 1) {
-		carret.y = linesAmount() - 1;
-		carret.x = carret.maxX = lines[linesAmount() - 1].size();
+	else if(caret.y + 1 >= linesAmount() - 1) {
+		caret.y = linesAmount() - 1;
+		caret.x = caret.maxX = lines[linesAmount() - 1].size();
 	}
 }
 void FileEditor::moveLeft() {
-	if(carret.x > 0) {
-		carret.x = carret.maxX = carret.x - 1;
+	if(caret.x > 0) {
+		caret.x = caret.maxX = caret.x - 1;
 	} 
-	else if(carret.y > 0) {
-		carret.y--;
-		carret.x = carret.maxX = getLineSize(carret.y);
+	else if(caret.y > 0) {
+		moveUp();
+		caret.x = caret.maxX = getLineSize(caret.y);
 	}
 }
 void FileEditor::moveRight() {
-	if(carret.x < getLineSize(carret.y)) {
-		carret.x = carret.maxX = carret.x + 1;
+	if(caret.x < getLineSize(caret.y)) {
+		caret.x = caret.maxX = caret.x + 1;
 	} 
-	else if(carret.y < linesAmount() - 1) {
-		carret.y++;
-		carret.x = carret.maxX = 0;
+	else if(caret.y < linesAmount() - 1) {
+		moveDown();
+		caret.x = caret.maxX = 0;
 	}
 }
-
+#endif
 void FileEditor::newLine() {
-	std::string& current = lines[carret.y];
-	std::string rest = current.substr(carret.x, getLineSize(carret.y));
-	current.erase(carret.x, getLineSize(carret.y)); 
-	lines.insert(lines.begin() + carret.y + 1, rest);
+	std::string& current = lines[caret.y];
+	std::string rest = current.substr(caret.x, getLineSize(caret.y));
+	current.erase(caret.x, getLineSize(caret.y)); 
+	lines.insert(lines.begin() + caret.y + 1, rest);
 }
 void FileEditor::del(bool right) {
 	// Anti-bug spray:
-	if ((carret.y == 0 && carret.x == 0) && linesAmount() <= 1 && getLineSize(carret.y) <= 1) {
+	if ((caret.y == 0 && caret.x == 0) && linesAmount() <= 1 && getLineSize(caret.y) <= 1) {
 		throw std::string(" No char to delete. ");
 	}
-	if (!(right) && carret.x == 0 && carret.y == 0) {
+	if (!(right) && caret.x == 0 && caret.y == 0) {
 		throw std::string(" No char to delete. ");
 	}
-	if (right && carret.x == getLineSize() && carret.y == linesAmount() - 1) {
+	if (right && caret.x == getLineSize() && caret.y == linesAmount() - 1) {
 		throw std::string(" No char to delete. ");
 	}
 
 	if(right) {
-		if(carret.x == getLineSize(carret.y)) {
-			int lineNr = carret.y;
+		if(caret.x == getLineSize(caret.y)) {
+			int lineNr = caret.y;
 			std::string line = lines[lineNr + 1];
 			lines.erase(lines.begin() + lineNr + 1);
 			lines[lineNr].append(line);
 		}
 		else {
-			lines[carret.y].erase(lines[carret.y].begin() + (carret.x));
+			lines[caret.y].erase(lines[caret.y].begin() + (caret.x));
 		}
 	}
 	else {
-		if (carret.x == 0 && carret.y == 0 && linesAmount() <= 1) {
+		if (caret.x == 0 && caret.y == 0 && linesAmount() <= 1) {
 			throw std::string(" No char to delete. ");
 		}
-		if(carret.x == 0) {
-			int lineNr = carret.y;
+		if(caret.x == 0) {
+			int lineNr = caret.y;
 			moveLeft();
 			std::string line = lines[lineNr];
 			lines.erase(lines.begin() + lineNr);
 			lines[lineNr - 1].append(line);
 		}
 		else {
-			lines[carret.y].erase(lines[carret.y].begin() + (carret.x - 1));
+			lines[caret.y].erase(lines[caret.y].begin() + (caret.x - 1));
 			moveLeft();
 		}
 	}
