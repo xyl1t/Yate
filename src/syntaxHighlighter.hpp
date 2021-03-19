@@ -4,7 +4,14 @@
 #include <sstream>
 #include <unordered_map>
 #include <ncurses.h>
+#include <vector>
 #include "editor.hpp"
+
+class Editor;
+
+using featuremap = std::unordered_map<std::string, std::pair<bool, std::string>>;
+using colormap = std::unordered_map<std::string, std::pair<int, int>>;
+using keywordmap = std::vector<std::string>;
 
 #define PAIR_SYNTAX_RED 11
 #define PAIR_SYNTAX_WHITE 12
@@ -16,6 +23,14 @@
 
 class syntaxHighlighter {
 	public:
+
+	syntaxHighlighter();
+
+	colormap createColormap(std::vector<std::string> names, std::vector<int> colors, std::vector<int> backup);
+
+	featuremap createFeaturemap(std::vector<bool> status, std::vector<std::string> symbols);
+
+	void registerMaps(std::string extension, keywordmap keywords, featuremap featuremap, colormap colormap);
 
 	inline void simpleAttrPrint(const std::string& symbol, int pair) const {
 		if (!( COLORS > 8 && can_change_color())) {
@@ -69,9 +84,9 @@ class syntaxHighlighter {
 		std::string new_symbol = std::string(symbol);
 		replaceStringInPlace(new_symbol, "*", "");
 		if (keywordmaps.find(extension) != keywordmaps.end()) {
-			std::vector<std::string> keywordmap = keywordmaps.at(extension);
-			for (int i = 0; i < static_cast<int>(keywordmap.size()); i++ ) {
-				if ( new_symbol == keywordmap[i] ) return true;
+			keywordmap newKeywordmap = keywordmaps.at(extension);
+			for (int i = 0; i < static_cast<int>(newKeywordmap.size()); i++ ) {
+				if ( new_symbol == newKeywordmap[i] ) return true;
 			}
 		}
 		return false;
@@ -92,172 +107,86 @@ class syntaxHighlighter {
 	}
 
 	// Parses a line and prints it out
-	void parseLine(const std::string& line, int lineNr, const std::string& extension);
+	void parseLine(const std::string& line, int lineNr, const std::string& extension, const Editor& editor);
 	// Parses a symbol and prints it out
-	void parseSymbol(const std::string& symbol, const std::string& extension);
-	// Parses a hashmap and stores it
-	std::unordered_map<std::string, int> parseHashmap(std::ifstream hashmap);
+	void parseSymbol(const std::string& symbol, const std::string& extension, const Editor& editor);
+	// Parses a colormap and stores it
+	colormap parseColormap(std::ifstream colormap);
 
-	inline bool hasHashmap(const std::string& extension) const {
-		if (hashmaps.find(extension) != hashmaps.end()) {
+	inline bool hasColormap(const std::string& extension) const {
+		if (colormaps.find(extension) != colormaps.end()) {
 			return true;
 		}
 		return false;
 	}
 
 	inline int getColorByKeyword(const std::string& keyword, const std::string& extension) const {
-		if (hasHashmap(extension)) {
-			// NOTE: For some reason hashmap[extension] doesn't work?
-			return hashmaps.at(extension).at(keyword).first;
+		if (hasColormap(extension)) {
+			return colormaps.at(extension).at(keyword).first;
 		} else {
 			return COLOR_WHITE;
 		}
 	}
 
 	inline int getBackupColorByKeyword(const std::string& keyword, const std::string& extension) const {
-		if (hasHashmap(extension)) {
-			// NOTE: For some reason hashmap[extension] doesn't work?
-			return hashmaps.at(extension).at(keyword).second;
+		if (hasColormap(extension)) {
+			return colormaps.at(extension).at(keyword).second;
 		} else {
 			return COLOR_WHITE;
 		}
 	}
 
-	inline void pushString(std::vector<std::pair<size_t, std::string>> vector, const std::string& line, const std::string& string) const {
-		vector.push_back(std::pair<size_t, std::string>(line.find(string), string));
-	}
-
 	// Proudly (?) stolen (and modified a bit) from stackoverflow: https://stackoverflow.com/questions/5888022/split-string-by-single-spaces
-	std::vector<std::string> splitBySpecialChars(const std::string& line) const {
-		std::vector<std::pair<size_t, std::string>> positions;
-		pushString(positions, line, " ");
-		pushString(positions, line, "\t");
-		pushString(positions, line, ";");
-		pushString(positions, line, "(");
-		pushString(positions, line, "[");
-		pushString(positions, line, "{");
-		pushString(positions, line, ")");
-		pushString(positions, line, "]");
-		pushString(positions, line, "}");
-		pushString(positions, line, "->");
-		pushString(positions, line, "\"");
-		pushString(positions, line, "\'");
-		pushString(positions, line, "#");
-		size_t initialPos = 0;
-		std::vector<std::string> finalVector;
-		finalVector.clear();
-		while(positions[0].first != std::string::npos || positions[1].first != std::string::npos || positions[2].first != std::string::npos || positions[3].first != std::string::npos || positions[4].first != std::string::npos || positions[5].first != std::string::npos || positions[6].first != std::string::npos || positions[7].first != std::string::npos || positions[8].first != std::string::npos || positions[9].first != std::string::npos || positions[10].first != std::string::npos || positions[11].first != std::string::npos || positions[12].first != std::string::npos) {
-			int min = 0;
-			for (int i = 0; i < static_cast<int>(positions.size() - 1); i++ ) {
-				if (positions[i].first < positions[i+1].first) {
-					if (positions[i].first < positions[min].first) {
-						min = i;
-					}
-				} else if (positions[i+1].first < positions[min].first) {
-					min = i+1;
-				}
-			}
-			finalVector.push_back(line.substr(initialPos, positions[min].first - initialPos));
-			finalVector.push_back(positions[min].second);
-			if (min == 9) {
-				initialPos = positions[min].first + 2;
-			} else {
-				initialPos = positions[min].first + 1;
-			}
-			positions[min].first = line.find(positions[min].second, initialPos);
-		}
-		int max = 0;
-		for (int i = 0; i < static_cast<int>(positions.size() + 1); i++ ) {
-			if (positions[i].first > positions[i+1].first) {
-				if (positions[i].first > positions[max].first) {
-					max = i;
-				}
-			} else if (positions[i+1].first > positions[max].first) {
-				max = i+1;
-			}
-		}
-		finalVector.push_back(line.substr(initialPos,std::min(positions[max].first, line.size()) - initialPos + 1));
-		return finalVector;
-	}
+	std::vector<std::string> splitBySpecialChars(const std::string& line, const std::string& extension);
 	
+	void registerDefaults();
+
 	private:
-
-	/*********************
-	* STANDARD	KEYWORDS *
-	**********************/
-
-	std::vector<std::string> cppKeywords{
+	const keywordmap javaKeywords{
 		""
 	};
 
-	std::vector<std::string> cKeywords{
-		"int",
-		"bool",
-		"float",
-		"void",
-		"nullptr",
-		"char",
-		"long",
-		"unsigned",
-		"signed",
-		"short",
-		"string",
-		"using",
-		"namespace"
-	};
-
-	const std::vector<std::string> pythonKeywords{
-		""
-	};
-	
-	const std::vector<std::string> javaKeywords{
+	const keywordmap haskellKeywords{
 		""
 	};
 
-	const std::vector<std::string> haskellKeywords{
+	const keywordmap htmlKeywords{
 		""
 	};
 
-	const std::vector<std::string> htmlKeywords{
+	const keywordmap jsKeywords{
 		""
 	};
 
-	const std::vector<std::string> jsKeywords{
+	const keywordmap tsKeywords{
 		""
 	};
 
-	const std::vector<std::string> tsKeywords{
+	const keywordmap cssKeywords{
 		""
 	};
 
-	const std::vector<std::string> cssKeywords{
+	const keywordmap rubyKeywords{
 		""
 	};
 
-	const std::vector<std::string> rubyKeywords{
+	const keywordmap rustKeywords{
 		""
 	};
 
-	const std::vector<std::string> rustKeywords{
+	const keywordmap perlKeywords{
 		""
 	};
 
-	const std::vector<std::string> perlKeywords{
+	const keywordmap bashKeywords{
 		""
 	};
 
-	const std::vector<std::string> bashKeywords{
+	const keywordmap csharpKeywords{
 		""
 	};
 
-	const std::vector<std::string> csharpKeywords{
-		""
-	};
-
-	const std::unordered_map<std::string, std::vector<std::string>> keywordmaps{
-		{"cpp", cppKeywords},
-		{"c", cKeywords},
-		{"python", pythonKeywords},
+	std::unordered_map<std::string, keywordmap> keywordmaps{
 		{"java", javaKeywords},
 		{"haskell", haskellKeywords},
 		{"html", htmlKeywords},
@@ -270,74 +199,37 @@ class syntaxHighlighter {
 		{"bash", bashKeywords},
 		{"csharp", csharpKeywords}
 	};
-
-	/****************************
-	*	STANDARD	HASHMAPS	*
-	*****************************/
-	
-	const std::unordered_map<std::string, std::pair<int, int>> cppHashmap{
+	const std::unordered_map<std::string, std::pair<int, int>> javaColormap{
 		{}
 	};
-	const std::unordered_map<std::string, std::pair<int, int>> cHashmap{
-		{"preprocessor", std::pair<int, int>(PAIR_SYNTAX_RED, PAIR_SYNTAX_RED)},
-		{"after_preprocessor", std::pair<int, int>(PAIR_SYNTAX_MAGENTA, PAIR_SYNTAX_MAGENTA)},
-		{"keyword", std::pair<int, int>(PAIR_SYNTAX_CYAN, PAIR_SYNTAX_CYAN)},
-		{"__reserved_string_color__", std::pair<int, int>(PAIR_SYNTAX_RED, PAIR_SYNTAX_RED)},
-		{"statement_end",  std::pair<int, int>(PAIR_SYNTAX_YELLOW, PAIR_SYNTAX_YELLOW)}
-	};
-	const std::unordered_map<std::string, std::pair<int, int>> pythonHashmap{
+	const std::unordered_map<std::string, std::pair<int, int>> haskellColormap{
 		{}
 	};
-	const std::unordered_map<std::string, std::pair<int, int>> javaHashmap{
+	const std::unordered_map<std::string, std::pair<int, int>> htmlColormap{
 		{}
 	};
-	const std::unordered_map<std::string, std::pair<int, int>> haskellHashmap{
+	const std::unordered_map<std::string, std::pair<int, int>> jsColormap{
 		{}
 	};
-	const std::unordered_map<std::string, std::pair<int, int>> htmlHashmap{
+	const std::unordered_map<std::string, std::pair<int, int>> tsColormap{
 		{}
 	};
-	const std::unordered_map<std::string, std::pair<int, int>> jsHashmap{
+	const std::unordered_map<std::string, std::pair<int, int>> cssColormap{
 		{}
 	};
-	const std::unordered_map<std::string, std::pair<int, int>> tsHashmap{
+	const std::unordered_map<std::string, std::pair<int, int>> rubyColormap{
 		{}
 	};
-	const std::unordered_map<std::string, std::pair<int, int>> cssHashmap{
+	const std::unordered_map<std::string, std::pair<int, int>> rustColormap{
 		{}
 	};
-	const std::unordered_map<std::string, std::pair<int, int>> rubyHashmap{
+	const std::unordered_map<std::string, std::pair<int, int>> perlColormap{
 		{}
 	};
-	const std::unordered_map<std::string, std::pair<int, int>> rustHashmap{
+	const std::unordered_map<std::string, std::pair<int, int>> bashColormap{
 		{}
 	};
-	const std::unordered_map<std::string, std::pair<int, int>> perlHashmap{
-		{}
-	};
-	const std::unordered_map<std::string, std::pair<int, int>> bashHashmap{
-		{}
-	};
-	const std::unordered_map<std::string, std::pair<int, int>> csharpHashmap{
-		{}
-	};
-
-	/****************************
-	*	STANDARD   FEATUREMAPS	*
-	*****************************/
-
-	// Language-specific symbols
-	const std::unordered_map<std::string, std::pair<bool, std::string>> cppFeatures{
-		{}
-	};
-	const std::unordered_map<std::string, std::pair<bool, std::string>> cFeatures{
-		{"preprocessor", {true, "#"}},
-		{"statement_end", {true, ";"}},
-		{"comment", {true, "//"}},
-		{"arrow_pointer", {true, "->"}},
-		{"multiline_comment", {true, "/*	*/"}}
-	};
-	const std::unordered_map<std::string, std::pair<bool, std::string>> pythonFeatures{
+	const std::unordered_map<std::string, std::pair<int, int>> csharpColormap{
 		{}
 	};
 	const std::unordered_map<std::string, std::pair<bool, std::string>> javaFeatures{
@@ -375,9 +267,6 @@ class syntaxHighlighter {
 	};
 
 	std::unordered_map<std::string, std::unordered_map<std::string, std::pair<bool, std::string>>> featuremaps{
-		{"cpp", cppFeatures},
-		{"c", cFeatures},
-		{"python", pythonFeatures},
 		{"java", javaFeatures},
 		{"haskell", haskellFeatures},
 		{"html", htmlFeatures},
@@ -391,21 +280,18 @@ class syntaxHighlighter {
 		{"csharp", csharpFeatures}
 	};
 
-	std::unordered_map<std::string, std::unordered_map<std::string, std::pair<int, int>>> hashmaps{
-		{"cpp", cppHashmap},
-		{"c", cHashmap},
-		{"python", pythonHashmap},
-		{"java", javaHashmap},
-		{"haskell", haskellHashmap},
-		{"html", htmlHashmap},
-		{"js", jsHashmap},
-		{"ts", tsHashmap},
-		{"css", cssHashmap},
-		{"ruby", rubyHashmap},
-		{"rust", rustHashmap},
-		{"perl", perlHashmap},
-		{"bash", bashHashmap},
-		{"csharp", csharpHashmap}
+	std::unordered_map<std::string, std::unordered_map<std::string, std::pair<int, int>>> colormaps{
+		{"java", javaColormap},
+		{"haskell", haskellColormap},
+		{"html", htmlColormap},
+		{"js", jsColormap},
+		{"ts", tsColormap},
+		{"css", cssColormap},
+		{"ruby", rubyColormap},
+		{"rust", rustColormap},
+		{"perl", perlColormap},
+		{"bash", bashColormap},
+		{"csharp", csharpColormap}
 	};
 	std::string nextSymbol{""};
 	// Boolean mess for syntax highlighting (sorry)

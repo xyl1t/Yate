@@ -40,14 +40,13 @@ FileEditor::FileEditor(const std::string& path)
 		std::cout << ("No file was supplied.\n");
 		exit(1);
 	}
-
+	
+	#if defined(__linux__) || defined(__APPLE__)
 	struct stat file_stat;
 	stat(path.c_str(), &file_stat);
 	uid_t current_uid = getuid();
 	gid_t current_gid = getgid();
 	fs::perms active_perms = fs::status(path).permissions();
-	
-	#if defined(__linux__) || defined(__APPLE__)
 	if (!(((active_perms & fs::perms::owner_read)  != fs::perms::none && file_stat.st_uid == current_uid) ||
 		  ((active_perms & fs::perms::group_read)  != fs::perms::none && file_stat.st_gid == current_gid) ||
 		  ((active_perms & fs::perms::others_read) != fs::perms::none))) {

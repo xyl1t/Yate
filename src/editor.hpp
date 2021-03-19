@@ -1,8 +1,8 @@
 #ifndef EDITOR_HPP
 #define EDITOR_HPP
 
-#include "fileEditor.hpp"
 #include "syntaxHighlighter.hpp"
+#include "fileEditor.hpp"
 #include <string>
 
 // Color pairs defines:
@@ -59,7 +59,7 @@ public:
     
 private:
 	FileEditor file;
-	syntaxHighlighter syntaxHG{};
+	syntaxHighlighter syntaxHG;
 	
 	int scrollX;
 	int scrollY;

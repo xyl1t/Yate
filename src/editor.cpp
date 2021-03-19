@@ -1,4 +1,5 @@
 #include "editor.hpp"
+#include "syntaxHighlighter.hpp"
 #include <ncurses.h>
 #include <unordered_map>
 
@@ -14,16 +15,18 @@ Editor::Editor(const std::string& filePath)
 		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
 	}
 	initColorPairs();
+	syntaxHighlighter syntaxHG{};
 }
 
 void Editor::draw() {
 	clear();
+	
 	syntaxHG.resetAllFlags();
 	for (int lineNr = scrollY; lineNr < scrollY + height && lineNr < file.linesAmount(); lineNr++) {
 		std::string_view line { file.getLine(lineNr) };
 		move(lineNr - scrollY, 0);
 		if (has_colors()) {
-			syntaxHG.parseLine(line.data(), lineNr, file.getFileExtension());
+			syntaxHG.parseLine(line.data(), lineNr, file.getFileExtension(), *this);
 		} else {
 			printw("%3d %s", lineNr + 1, line.data());
 		}
