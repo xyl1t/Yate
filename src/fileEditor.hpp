@@ -34,9 +34,8 @@ public:
 		moveCaret(1, 0);
 	}
 	
-	inline void put(const char& ch) {
+	inline void put(char ch) {
 		lines[caret.y].insert(caret.x, 1, ch);
-		moveRight();
 	}
 	inline void put(const std::string& str) {
 		lines[caret.y].insert(caret.x, str);

@@ -61,8 +61,8 @@ void Editor::draw() {
 void Editor::getInput() {
 	int input = getch();
 
-	if(input >= 32 && input < 127) {
-		file.put(static_cast<char>(input));
+	if((input >= 32 && input < 127) || input == KEY_STAB || input == 9) {
+		put(static_cast<char>(input));
 		if(!file.hasWritePermission()) {
 			setStatus(" Warning: File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
 		}
@@ -111,10 +111,6 @@ void Editor::getInput() {
 			case KEY_DL:
 				deleteCharR();
 				break;
-			case 9:
-			case KEY_STAB:
-				file.put(static_cast<char>(input));
-				break;
 			case 19:
 				saveFile();
 				break;
@@ -139,6 +135,11 @@ void Editor::getInput() {
 #endif
 }
 
+void Editor::put(char ch) {
+	file.put(ch);
+	moveRight();
+}
+	
 void Editor::scrollUp() {
 	if(scrollY > 0)
 		scrollY--;
@@ -252,7 +253,13 @@ void Editor::newLine() {
 }
 void Editor::deleteCharL() {
 	try {
-		file.del(false);
+		if(caret.x == 0) {
+			moveLeft();
+			file.del(true);
+		} else {
+			file.del(false);
+			moveLeft();
+		}
     	if(file.getCaretY() - scrollY < 0) {
         	scrollY--;
     	}

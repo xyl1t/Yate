@@ -148,7 +148,6 @@ void FileEditor::newLine() {
 	lines.insert(lines.begin() + caret.y + 1, rest);
 }
 void FileEditor::del(bool right) {
-	// Anti-bug spray:
 	if ((caret.y == 0 && caret.x == 0) && linesAmount() <= 1 && getLineSize(caret.y) <= 1) {
 		throw std::string(" No char to delete. ");
 	}
@@ -176,14 +175,12 @@ void FileEditor::del(bool right) {
 		}
 		if(caret.x == 0) {
 			int lineNr = caret.y;
-			moveLeft();
 			std::string line = lines[lineNr];
 			lines.erase(lines.begin() + lineNr);
 			lines[lineNr - 1].append(line);
 		}
 		else {
 			lines[caret.y].erase(lines[caret.y].begin() + (caret.x - 1));
-			moveLeft();
 		}
 	}
 }

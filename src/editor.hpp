@@ -13,6 +13,8 @@ public:
 	void draw();
 	void getInput();
 	
+	void put(char ch);
+
 	void scrollUp();
 	void scrollDown();
 	void scrollLeft();
