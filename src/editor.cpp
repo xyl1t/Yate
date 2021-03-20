@@ -265,6 +265,7 @@ void Editor::deleteCharL() {
     	if(file.getCaretY() - scrollY < 0) {
         	scrollY--;
     	}
+		caret.savedX = caret.x;
 	} catch(std::string e) {
 		setStatus(e, PAIR_ERROR);
 	}
@@ -272,6 +273,7 @@ void Editor::deleteCharL() {
 void Editor::deleteCharR() {
 	try {
 		file.del(true);
+		caret.savedX = caret.x;
 	} catch(std::string e) {
 		setStatus(e, PAIR_ERROR);
 	}
