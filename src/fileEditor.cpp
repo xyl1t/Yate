@@ -7,11 +7,9 @@
 namespace  fs = std::filesystem;
 #include <ncurses.h>
 
-// If windows, include windows API.
 #ifdef _WIN32
 #include "Windows.h"
 #endif
-// If linux, include linux's system library.
 #if defined(__linux__) || defined(__APPLE__)
 #include <unistd.h>
 #include <sys/stat.h>

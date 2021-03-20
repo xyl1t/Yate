@@ -145,8 +145,9 @@ private:
 	}
 	inline void setCaretLocation(int x, int y) {
 		caret.y = std::clamp(y, 0, (int)file.linesAmount() - 1);
-		caret.x = caret.savedX = std::clamp(x, 0, (int)getVirtualLineLength(caret.y));
-		file.setCaretLocation(getFileCaretColumn(caret.x), caret.y);
+		x = std::clamp(x, 0, (int)getVirtualLineLength(caret.y));
+		file.setCaretLocation(getFileCaretColumn(x), caret.y);
+		caret.x = caret.savedX = getVirtualCaretColumn(file.getCaretX(), file.getCaretY());
 		
 		scrollToCaret();
 	}
@@ -158,9 +159,6 @@ private:
 		if(caret.x > getTextEditorWidth() - 1 + scrollX) {
 			scrollRight((caret.x) - (getTextEditorWidth() - 1 + scrollX));
 		}
-		// if(caret.x > getTextEditorWidth() + scrollX || caret.x < getTextEditorWidth() + scrollX) {
-		// 	scrollH(caret.x - (getTextEditorWidth() + scrollX) + 2);
-		// }
 		if(caret.y < scrollY) {
 			scrollUp((scrollY) - (caret.y));
 		}

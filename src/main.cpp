@@ -8,7 +8,6 @@
 // Many thanks to @Niki4Tap and @EntireTwix for contributing!
 
 // TODO:
-// * Create a file when no file is specified
 // * Word highlighting 
 //   * Basic keyword highlighting 
 //   * Begin and end parenthesis 

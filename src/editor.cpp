@@ -30,7 +30,7 @@ Editor::Editor(const std::string& filePath, int tabSize)
 bool Editor::close() {
 	// NOTE: Maybe instead of exiting without saving, ask the user if he wants to save
 	if(file.hasFileContentChanged()) {
-		std::string status {" Exit without saving? [Y/N]: "};
+		std::string status {" Exit without saving? [Y/N] "};
 		setStatus(status, PAIR_WARNING);
 		draw();
 		int input{getch()};
@@ -79,6 +79,7 @@ void Editor::draw() {
 	attron(COLOR_PAIR(this->colorPair));
 	
 	// print status at bottom of screen
+	this->statusText.resize(getmaxx(stdscr), ' ');
 	mvprintw(getmaxy(stdscr) - 1, 0, this->statusText.c_str());
 
 	attroff(COLOR_PAIR(this->colorPair));
@@ -107,10 +108,10 @@ int Editor::getInput() {
 		switch(input)
 		{
 			case 22:
-			setCaretLocation(caret.x, caret.y - getTextEditorHeight() - 1);
+			setCaretLocation(caret.x, caret.y - (getTextEditorHeight() - 1));
 				break;
 			case 2:
-			setCaretLocation(caret.x, caret.y + getTextEditorHeight() - 1);
+			setCaretLocation(caret.x, caret.y + (getTextEditorHeight() - 1));
 				break;
 			case 13:
 			scrollLeft();
@@ -379,6 +380,7 @@ void Editor::setStatus(const std::string& message, int colorPair) {
 }
 void Editor::resetStatus() {
 	char buffer[256];
+	std::string s{};
 #ifndef NDEBUG
 	sprintf(
 		buffer, 
@@ -387,15 +389,25 @@ void Editor::resetStatus() {
 		caret.x, caret.y, caret.savedX, 
 		file.getCaretX(), file.getCaretY()
 	);
+	s = buffer;
 #else
 	sprintf(
 		buffer, 
-		" File: %s\tRow: %2d, Col: %2d ", 
-		file.getFullFilename() != "" ? file.getFullFilename().c_str() : "not specified", 
+		" File: %s", 
+		file.getFullFilename() != "" ? file.getFullFilename().c_str() : "not specified"
+	);
+	std::string left {buffer};
+	sprintf(
+		buffer, 
+		"Row: %2d, Col: %2d ", 
 		caret.y + 1, caret.x + 1
 	);
+	std::string right {buffer};
+	s = left;
+	s.resize(getmaxx(stdscr), ' ');
+	s.insert(s.length() - right.size(), right);
 #endif
-	setStatus(buffer);
+	setStatus(s);
 }
 
 // Defines color pairs
