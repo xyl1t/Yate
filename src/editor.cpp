@@ -11,25 +11,27 @@
 
 Editor::Editor(const std::string& filePath, int tabSize) 
 	: file(filePath), 
+	caret(),
 	TAB_SIZE(tabSize),
 	scrollX(0),
 	scrollY(0),
 	width(getmaxx(stdscr) - 4), 
 	height(getmaxy(stdscr) - 2),
     alive(true),
-	caret() {
+	customStatusText(false) {
+	initColorPairs();
 	resetStatus();
+	customStatusText = false;
 	if (!file.hasWritePermission()) {
 		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
 	}
-	initColorPairs();
 }
 
 bool Editor::close() {
 	// NOTE: Maybe instead of exiting without saving, ask the user if he wants to save
 	if(file.hasFileContentChanged()) {
 		std::string status {" Exit without saving? [Y/N]: "};
-		setStatus(status, PAIR_INFO);
+		setStatus(status, PAIR_WARNING);
 		draw();
 		int input{getch()};
 		if(input == 'y' || input == 'Y') {
@@ -59,12 +61,12 @@ void Editor::draw() {
 			if(ch == '\t') {
 				const int tabSize = TAB_SIZE - (virtualCol) % TAB_SIZE;
 				for(int original = virtualCol; virtualCol < original + tabSize; virtualCol++) {
-					if(virtualCol >= scrollX && virtualCol - scrollX <= min) {
+					if(virtualCol >= scrollX && virtualCol - scrollX < min) {
 						printw(" ");
 					}
 				}
 			} else {
-				if(virtualCol >= scrollX && virtualCol - scrollX  <= min) {
+				if(virtualCol >= scrollX && virtualCol - scrollX < min) {
 					printw("%c", ch);
 				}
 				virtualCol++;
@@ -327,6 +329,7 @@ void Editor::saveFile() {
 		draw();
 		int input{};
 		Caret saveCaret{};
+		move(getmaxy(stdscr) - 1, saveCaret.x + status.length());
 		while (true) {
 			input = getch();
 			if(input == 10) break;
@@ -352,13 +355,17 @@ void Editor::saveFile() {
 				draw();
 				return;
 			}
-			setStatus((std::string{status + fileName}).c_str(), PAIR_INFO);
+			setStatus((std::string{status + fileName + " "}).c_str(), PAIR_INFO);
 			draw();
 			move(getmaxy(stdscr) - 1, saveCaret.x + status.length());
 		}
 		
-		file.saveAs(fileName);
-		setStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);
+		if(fileName.empty()) {
+			setStatus(" File not saved because no name specified ", PAIR_INFO);
+		} else {
+			file.saveAs(fileName);
+			setStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);
+		}
 	}
 }	
 
@@ -372,13 +379,22 @@ void Editor::setStatus(const std::string& message, int colorPair) {
 }
 void Editor::resetStatus() {
 	char buffer[256];
+#ifndef NDEBUG
 	sprintf(
 		buffer, 
-		" File: %s\tc.x %2d, c.y %2d, c.sx %2d | f.x %2d, f.y %2d", 
+		" File: %s\tc.x %2d, c.y %2d, c.sx %2d | f.x %2d, f.y %2d ", 
 		file.getFullFilename().c_str(), 
 		caret.x, caret.y, caret.savedX, 
 		file.getCaretX(), file.getCaretY()
 	);
+#else
+	sprintf(
+		buffer, 
+		" File: %s\tRow: %2d, Col: %2d ", 
+		file.getFullFilename() != "" ? file.getFullFilename().c_str() : "not specified", 
+		caret.y + 1, caret.x + 1
+	);
+#endif
 	setStatus(buffer);
 }
 

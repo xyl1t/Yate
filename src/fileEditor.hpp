@@ -55,13 +55,13 @@ public:
 		} 
 		
 		std::fstream file {path};
-		int row = 0;
+		size_t row = 0;
 		while(file) {
 			std::string line{""};
 			std::getline(file, line);
 			if(!file) break;
 			if(line.length() != lines[row].length()) return true;
-			for(int i = 0; i < line.length(); i++) {
+			for(size_t i = 0; i < line.length(); i++) {
 				if(line[i] != lines[row][i]) return true;
 			}
 			row++;

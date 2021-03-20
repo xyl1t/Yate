@@ -70,6 +70,8 @@ public:
 private:
 	FileEditor file;
 	
+	Caret caret;
+	
 	const int TAB_SIZE;
 	
 	int scrollX;
@@ -85,7 +87,6 @@ private:
 	// Color control variable:
 	int colorPair{1};
 	
-	Caret caret;
 	
 	inline int getVirtualCaretColumnToCaret() {
 		return getVirtualCaretColumnToCaret(file.getCaretY());
