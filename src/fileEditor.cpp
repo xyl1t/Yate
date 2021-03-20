@@ -94,53 +94,6 @@ FileEditor::FileEditor(const std::string& path)
 	}
 }
 
-#if 0
-void FileEditor::moveUp() {
-	if(caret.y - 1 >= 0) {
-		caret.y -= 1;
-		if(getLineSize(caret.y) < caret.maxX) {
-			caret.x = getLineSize(caret.y);
-		}
-		else
-			caret.x = caret.maxX;
-	}
-	else if(caret.y - 1 < 0) {
-		caret.y = 0;
-		caret.x = caret.maxX = 0;
-	}
-}
-void FileEditor::moveDown() {
-	if(caret.y + 1 < linesAmount()) {
-		caret.y += 1;
-		if(getLineSize(caret.y) < caret.maxX) 
-			caret.x = getLineSize(caret.y);
-		else 
-			caret.x = caret.maxX;
-	}
-	else if(caret.y + 1 >= linesAmount() - 1) {
-		caret.y = linesAmount() - 1;
-		caret.x = caret.maxX = lines[linesAmount() - 1].size();
-	}
-}
-void FileEditor::moveLeft() {
-	if(caret.x > 0) {
-		caret.x = caret.maxX = caret.x - 1;
-	} 
-	else if(caret.y > 0) {
-		moveUp();
-		caret.x = caret.maxX = getLineSize(caret.y);
-	}
-}
-void FileEditor::moveRight() {
-	if(caret.x < getLineSize(caret.y)) {
-		caret.x = caret.maxX = caret.x + 1;
-	} 
-	else if(caret.y < linesAmount() - 1) {
-		moveDown();
-		caret.x = caret.maxX = 0;
-	}
-}
-#endif
 void FileEditor::newLine() {
 	std::string& current = lines[caret.y];
 	std::string rest = current.substr(caret.x, getLineSize(caret.y));

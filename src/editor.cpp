@@ -28,15 +28,26 @@ void Editor::draw() {
 	clear();
 	for (int lineNr = scrollY; lineNr < scrollY + height && lineNr < file.linesAmount(); lineNr++) {
 		std::string line { file.getLine(lineNr) };
-		move(lineNr - scrollY, 0);
 		int min = getTextEditorWidth();
-		if((int)line.length() - scrollX < min) 
-			min = line.length() - scrollX;
-		if((int)line.length() < scrollX) 
-			line = "";
-		else
-			line = line.substr(scrollX, min);
-		printw("%3d %s", lineNr + 1, line.c_str());
+		int virtualCol = 0;
+		
+		move(lineNr - scrollY, 0);
+		printw("%3d ", lineNr + 1);
+		for (char ch : line) {
+			if(ch == '\t') {
+				const int tabSize = TAB_SIZE - (virtualCol) % TAB_SIZE;
+				for(int original = virtualCol; virtualCol < original + tabSize; virtualCol++) {
+					if(virtualCol >= scrollX && virtualCol - scrollX <= min) {
+						printw(" ");
+					}
+				}
+			} else {
+				if(virtualCol >= scrollX && virtualCol - scrollX  <= min) {
+					printw("%c", ch);
+				}
+				virtualCol++;
+			}
+		}
 	}
 
 	// turn on and set color for status
@@ -54,7 +65,7 @@ void Editor::draw() {
 	// std::string cursorText = file.getLine(file.getCaretY()).substr(0, file.getCaretX());
 	// mvprintw(file.getCaretY() - scrollY, 4, cursorText.c_str());
 	
-	move(caret.y - scrollY, caret.x + 4);
+	move(caret.y - scrollY, caret.x - scrollX + 4);
 	refresh();
 }
 
@@ -71,6 +82,18 @@ void Editor::getInput() {
 	{
 		switch(input)
 		{
+			case 22:
+			setCaretLocation(caret.x, caret.y - getTextEditorHeight() - 1);
+				break;
+			case 2:
+			setCaretLocation(caret.x, caret.y + getTextEditorHeight() - 1);
+				break;
+			case 13:
+			scrollLeft();
+				break;
+			case 14:
+			scrollRight();
+				break;
 			case KEY_UP:
 				moveUp();
 				break;
@@ -139,23 +162,26 @@ void Editor::put(char ch) {
 	file.put(ch);
 	moveRight();
 }
-	
-void Editor::scrollUp() {
-	if(scrollY > 0)
-		scrollY--;
-}
-void Editor::scrollDown() {
-	if(scrollY < file.linesAmount() - 1)
-		scrollY++;
-}
-void Editor::scrollLeft() {
-	// if(scrollY > 0)
-		scrollX--;
-}
-void Editor::scrollRight() {
-	// if(scrollX + getTextEditorWidth() < file.getLineSize() - 1)
-		scrollX++;
-}
+
+
+// void Editor::scrollH(int amount) {
+// 	scrollX += std::clamp(scrollX + amount, 0, file.getLineSize() - 1);
+// }
+// void Editor::scrollV(int amount) {
+// 	scrollY += std::clamp(scrollY + amount, 0, file.linesAmount() - 1);
+// }
+// void Editor::scrollUp(int amount) {
+// 	scrollY -= std::clamp(scrollY + amount, 0, file.linesAmount() - 1);
+// }
+// void Editor::scrollDown(int amount) {
+// 	scrollY += std::clamp(scrollY + amount, 0, file.linesAmount() - 1);
+// }
+// void Editor::scrollRight(int amount) {
+// 	scrollX += std::clamp(scrollX + amount, 0, file.getLineSize() - 1);
+// }
+// void Editor::scrollLeft(int amount) {
+// 	scrollX -= std::clamp(scrollX + amount, 0, file.getLineSize() - 1);
+// }
 
 void Editor::moveUp() {
 	if(scrollY - file.getCaretY() >= 0)
@@ -176,9 +202,10 @@ void Editor::moveUp() {
 		caret.x = caret.savedX = 0;
 		file.setCaretLocation(0, 0);
 	}
+	scrollToCaret();
 }
 void Editor::moveDown() {
-	if((scrollY + height) - caret.y - 1 <= 0) {
+	if((scrollY + height) - caret.y - 1 <= 0 && caret.y + 1 < file.linesAmount()) {
 		scrollDown();
 	}
 	
@@ -193,37 +220,42 @@ void Editor::moveDown() {
 			caret.x = getVirtualCaretColumn(file.getCaretX(), file.getCaretY());
 		} 
 	} else {
+		file.setCaretLocation(file.getLineSize(), file.linesAmount() - 1);
 		caret.y = file.linesAmount() - 1;
 		caret.x = caret.savedX = getVirtualCaretColumn(file.getLineSize(), file.linesAmount() - 1);
-		file.setCaretLocation(file.getLineSize(), file.linesAmount() - 1);
 	}
-	
-}
-void Editor::moveLeft() {
-	if(getOnScreenCursorX() == 0)
-		scrollLeft();
-	
-	if(caret.x > 0) {
-		file.moveLeft();
-		caret.x = caret.savedX = getVirtualCaretColumn(getFileCaretColumn(), caret.y);
-	} else if(caret.y > 0) {
-		moveUp();
-		caret.x = caret.savedX = getVirtualCaretColumn(file.getLineSize(caret.y), caret.y);
-		file.setCaretLocation(file.getLineSize(caret.y), file.getCaretY());
-	}
+	scrollToCaret();
 }
 void Editor::moveRight() {
-	if(getOnScreenCursorX() >= getTextEditorWidth() - 1) 
-		scrollRight();
-	
+	int prev = caret.x;
 	if (caret.x < getVirtualCaretColumn(file.getLineSize(caret.y), caret.y)) {
 		file.moveRight();
 		caret.x = caret.savedX = getVirtualCaretColumn(getFileCaretColumn(), caret.y);
 	} else if (caret.y < file.linesAmount() - 1) {
 		moveDown();
+		setScrollH(0);
 		caret.x = caret.savedX = 0;
 		file.setCaretLocation(0, file.getCaretY());
 	}
+	
+	if(caret.x - scrollX + 1 > getTextEditorWidth()) 
+		scrollRight(caret.x - prev); // NOTE: calculating difference in case if there is a tab
+}
+void Editor::moveLeft() {
+	int prev = caret.x;
+	if(caret.x > 0) {
+		file.moveLeft();
+		caret.x = caret.savedX = getVirtualCaretColumn(getFileCaretColumn(), caret.y);
+	} else if(caret.y > 0) {
+		moveUp();
+		int virtualX = getVirtualCaretColumn(file.getLineSize(caret.y), caret.y);
+		setScrollH(virtualX - getTextEditorWidth() + 2);
+		caret.x = caret.savedX = virtualX;
+		file.setCaretLocation(file.getLineSize(caret.y), file.getCaretY());
+	}
+	
+	if(caret.x - scrollX < 0)
+		scrollLeft(prev - caret.x); // NOTE: calculating difference in case if there is a tab
 }
 
 void Editor::moveBeginningOfLine() {
@@ -300,9 +332,8 @@ void Editor::resetStatus() {
 	char buffer[256];
 	sprintf(
 		buffer, 
-		" File: %s\tRow %2d, Col %2d | c.x %2d, c.y %2d, c.sx %2d | f.x %2d, f.y %2d", 
+		" File: %s\tc.x %2d, c.y %2d, c.sx %2d | f.x %2d, f.y %2d", 
 		file.getFullFilename().c_str(), 
-		file.getCaretY() + 1, file.getCaretX() + 1, 
 		caret.x, caret.y, caret.savedX, 
 		file.getCaretX(), file.getCaretY()
 	);
