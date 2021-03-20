@@ -27,17 +27,6 @@ FileEditor::FileEditor(const std::string& path)
 	writePermission{true} {
 	if (path != "") {
 		setPath(path);
-		// fs::path temp = fs::path{path};
-		// std::string path;
-		// path = fs::absolute(temp).string();
-		// this->path = path;
-		// for (int i = path.size() - 1; i >= 0; i--) {
-		// 	if(path[i] == '/' || path[i] == '\\') break;
-		// 	fullFilename += path[i];
-		// }
-		// std::reverse(fullFilename.begin(), fullFilename.end());
-		// filename = fullFilename.substr(0, fullFilename.find('.'));
-		// extension = fullFilename.substr(filename.size());
 
 		struct stat file_stat;
 		stat(path.c_str(), &file_stat);
@@ -73,12 +62,12 @@ FileEditor::FileEditor(const std::string& path)
 		if (!file) {
 			endwin();
 			std::cout << "Error occured while trying to open " << fullFilename << ".\n";
-	#ifndef NDEBUG
+#ifndef NDEBUG
 			std::cerr << "Error bits are: "
 				<< "\nfailbit: " << file.fail() 
 				<< "\neofbit: " << file.eof()
 				<< "\nbadbit: " << file.bad() << std::endl;  
-	#endif
+#endif
 			exit(1);
 		}
 		while(file)
