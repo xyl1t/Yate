@@ -53,9 +53,9 @@ int main(int argc, char** argv) {
 		editor.draw();
 		editor.getInput();
 	}
-	editor.saveFile();
 	
 	endwin();
+	exit(0);
 	
 	return 0;
 }

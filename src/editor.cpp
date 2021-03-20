@@ -25,6 +25,27 @@ Editor::Editor(const std::string& filePath, int tabSize)
 	initColorPairs();
 }
 
+bool Editor::close() {
+	// NOTE: Maybe instead of exiting without saving, ask the user if he wants to save
+	if(file.hasFileContentChanged()) {
+		std::string status {" Exit without saving? [Y/N]: "};
+		setStatus(status, PAIR_INFO);
+		draw();
+		int input{getch()};
+		if(input == 'y' || input == 'Y') {
+			this->alive = false;
+			file.close();
+			return true;
+		} 
+		resetStatus();
+		draw();
+		return false;
+	}
+	this->alive = false;
+	file.close();
+	return true;
+}
+
 void Editor::draw() {
 	clear();
 	for (int lineNr = scrollY; lineNr < scrollY + height && lineNr < file.linesAmount(); lineNr++) {
@@ -139,10 +160,7 @@ int Editor::getInput() {
 				saveFile();
 				break;
 			case 3:
-				file.close();
-				// NOTE: Maybe instead of exiting without saving, ask the user if he wants to save
-				endwin();
-				exit(0);
+				close();
 				break;
 		}
 	}
@@ -295,54 +313,54 @@ void Editor::deleteCharR() {
 }
 
 void Editor::saveFile() {
-	if (file.hasWritePermission()) {
-		if(file.getPath() != "") {
+	if(file.getPath() != "") {
+		if (file.hasWritePermission()) {
 			file.save();
 			setStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);
 		} else {
-			std::string status {" Specify file name: "};
-			std::string fileName{};
-			setStatus(status, PAIR_INFO);
-			draw();
-			int input{};
-			Caret saveCaret{};
-			while (true) {
-				input = getch();
-				if(input == 10) break;
-				if(input >= 32 && input < 127) {
-					fileName.insert(saveCaret.x, 1, (char)input);
-					saveCaret.x++;
-				}
-				if(input == KEY_RIGHT) {
-					if(saveCaret.x < fileName.length()) saveCaret.x++;
-				}
-				if(input == KEY_LEFT) {
-					if(saveCaret.x > 0) saveCaret.x--;
-				}
-				if(input == 127 && !fileName.empty()) { // BACKSPACE
-					fileName.erase(saveCaret.x - 1, 1);
-					if(saveCaret.x > 0) saveCaret.x--;
-				} 
-				if(input == 330 && !fileName.empty()) { // DEL
-					fileName.erase(saveCaret.x, 1);
-				}
-				if(input == 27 || input == 3) { // ESCAPE or ctrl+c
-					resetStatus();
-					draw();
-					return;
-				}
-				setStatus((std::string{status + fileName}).c_str(), PAIR_INFO);
-				draw();
-				move(getmaxy(stdscr) - 1, saveCaret.x + status.length());
-			}
-			
-			file.saveAs(fileName);
-			setStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);
+			setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
 		}
 	} else {
-		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
+		std::string status {" Specify file name: "};
+		std::string fileName{};
+		setStatus(status, PAIR_INFO);
+		draw();
+		int input{};
+		Caret saveCaret{};
+		while (true) {
+			input = getch();
+			if(input == 10) break;
+			if(input >= 32 && input < 127) {
+				fileName.insert(saveCaret.x, 1, (char)input);
+				saveCaret.x++;
+			}
+			if(input == KEY_RIGHT) {
+				if(saveCaret.x < (int)fileName.length()) saveCaret.x++;
+			}
+			if(input == KEY_LEFT) {
+				if(saveCaret.x > 0) saveCaret.x--;
+			}
+			if(input == 127 && !fileName.empty()) { // BACKSPACE
+				fileName.erase(saveCaret.x - 1, 1);
+				if(saveCaret.x > 0) saveCaret.x--;
+			} 
+			if(input == 330 && !fileName.empty()) { // DEL
+				fileName.erase(saveCaret.x, 1);
+			}
+			if(input == 27 || input == 3) { // ESCAPE or ctrl+c
+				resetStatus();
+				draw();
+				return;
+			}
+			setStatus((std::string{status + fileName}).c_str(), PAIR_INFO);
+			draw();
+			move(getmaxy(stdscr) - 1, saveCaret.x + status.length());
+		}
+		
+		file.saveAs(fileName);
+		setStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);
 	}
-}
+}	
 
 void Editor::setStatus(const std::string& message) {
 	setStatus(message, PAIR_STANDARD);

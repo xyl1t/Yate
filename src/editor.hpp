@@ -9,7 +9,9 @@
 class Editor {
 public:
 	Editor(const std::string& filePath, int tabSize = 4);
-
+	
+	bool close();
+	
 	void draw();
 	int getInput();
 	

@@ -45,6 +45,33 @@ public:
 	
 	void newLine();
 	
+	bool hasFileContentChanged() {
+		if(!hasWritePermission()) {
+			return false;
+		}
+		if(path == "") {
+			if (lines.size() > 1 || !lines[0].empty()) return true; 
+			else return false;
+		} 
+		
+		std::fstream file {path};
+		int row = 0;
+		while(file) {
+			std::string line{""};
+			std::getline(file, line);
+			if(!file) break;
+			if(line.length() != lines[row].length()) return true;
+			for(int i = 0; i < line.length(); i++) {
+				if(line[i] != lines[row][i]) return true;
+			}
+			row++;
+			if(row > lines.size()) return true;
+		}
+		if(row != lines.size()) return true;
+
+		return false;
+	}
+	
 	inline const std::string& getLine() const {
 		return lines[caret.y];
 	}
