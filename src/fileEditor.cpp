@@ -26,71 +26,71 @@ FileEditor::FileEditor(const std::string& path)
 	lines{},
 	writePermission{true} {
 	if (path != "") {
-		fs::path temp = fs::path{path};
-		std::string path;
-		path = fs::absolute(temp).string();
-		this->path = path;
-		for (int i = path.size() - 1; i >= 0; i--) {
-			if(path[i] == '/' || path[i] == '\\') break;
-			fullFilename += path[i];
-		}
-		std::reverse(fullFilename.begin(), fullFilename.end());
-	} else {
-		endwin();
-		std::cout << ("No file was supplied.\n");
-		exit(1);
-	}
+		setPath(path);
+		// fs::path temp = fs::path{path};
+		// std::string path;
+		// path = fs::absolute(temp).string();
+		// this->path = path;
+		// for (int i = path.size() - 1; i >= 0; i--) {
+		// 	if(path[i] == '/' || path[i] == '\\') break;
+		// 	fullFilename += path[i];
+		// }
+		// std::reverse(fullFilename.begin(), fullFilename.end());
+		// filename = fullFilename.substr(0, fullFilename.find('.'));
+		// extension = fullFilename.substr(filename.size());
 
-	struct stat file_stat;
-	stat(path.c_str(), &file_stat);
-	uid_t current_uid = getuid();
-	gid_t current_gid = getgid();
-	fs::perms active_perms = fs::status(path).permissions();
-	
-	#if defined(__linux__) || defined(__APPLE__)
-	if (!(((active_perms & fs::perms::owner_read)  != fs::perms::none && file_stat.st_uid == current_uid) ||
-		  ((active_perms & fs::perms::group_read)  != fs::perms::none && file_stat.st_gid == current_gid) ||
-		  ((active_perms & fs::perms::others_read) != fs::perms::none))) {
-		endwin();
-		std::cout << "Can't edit " << fullFilename << " not enough permissions.\n";
-		exit(1);
-	}
-	this->writePermission = ((active_perms & fs::perms::owner_write)  != fs::perms::none && file_stat.st_uid == current_uid) ||
-							((active_perms & fs::perms::group_write)  != fs::perms::none && file_stat.st_gid == current_gid) ||
-							((active_perms & fs::perms::others_write) != fs::perms::none);
-	#elif
-	if (!(((active_perms & fs::perms::owner_read)  != fs::perms::none) ||
-		  ((active_perms & fs::perms::group_read)  != fs::perms::none) ||
-		  ((active_perms & fs::perms::others_read) != fs::perms::none))) {
-		endwin();
-		std::cout << "Can't edit " << fullFilename << " not enough permissions.\n";
-		exit(1);
-	}
-	this->writePermission = ((active_perms & fs::perms::owner_write)  != fs::perms::none) ||
-							((active_perms & fs::perms::group_write)  != fs::perms::none) ||
-							((active_perms & fs::perms::others_write) != fs::perms::none);
+		struct stat file_stat;
+		stat(path.c_str(), &file_stat);
+		uid_t current_uid = getuid();
+		gid_t current_gid = getgid();
+		fs::perms active_perms = fs::status(path).permissions();
+		
+		#if defined(__linux__) || defined(__APPLE__)
+		if (!(((active_perms & fs::perms::owner_read)  != fs::perms::none && file_stat.st_uid == current_uid) ||
+			((active_perms & fs::perms::group_read)  != fs::perms::none && file_stat.st_gid == current_gid) ||
+			((active_perms & fs::perms::others_read) != fs::perms::none))) {
+			endwin();
+			std::cout << "Can't edit " << fullFilename << " not enough permissions.\n";
+			exit(1);
+		}
+		this->writePermission = ((active_perms & fs::perms::owner_write)  != fs::perms::none && file_stat.st_uid == current_uid) ||
+								((active_perms & fs::perms::group_write)  != fs::perms::none && file_stat.st_gid == current_gid) ||
+								((active_perms & fs::perms::others_write) != fs::perms::none);
+		#elif
+		if (!(((active_perms & fs::perms::owner_read)  != fs::perms::none) ||
+			((active_perms & fs::perms::group_read)  != fs::perms::none) ||
+			((active_perms & fs::perms::others_read) != fs::perms::none))) {
+			endwin();
+			std::cout << "Can't edit " << fullFilename << " not enough permissions.\n";
+			exit(1);
+		}
+		this->writePermission = ((active_perms & fs::perms::owner_write)  != fs::perms::none) ||
+								((active_perms & fs::perms::group_write)  != fs::perms::none) ||
+								((active_perms & fs::perms::others_write) != fs::perms::none);
+		#endif
+		
+		std::ifstream file {path};
+		if (!file) {
+			endwin();
+			std::cout << "Error occured while trying to open " << fullFilename << ".\n";
+	#ifndef NDEBUG
+			std::cerr << "Error bits are: "
+				<< "\nfailbit: " << file.fail() 
+				<< "\neofbit: " << file.eof()
+				<< "\nbadbit: " << file.bad() << std::endl;  
 	#endif
-	
-	filename = fullFilename.substr(0, fullFilename.find('.'));
-	extension = fullFilename.substr(filename.size());
-	std::ifstream file {path};
-	if (!file) {
-		endwin();
-		std::cout << "Error occured while trying to open " << fullFilename << ".\n";
-#ifndef NDEBUG
-		std::cerr << "Error bits are: "
-			<< "\nfailbit: " << file.fail() 
-			<< "\neofbit: " << file.eof()
-			<< "\nbadbit: " << file.bad() << std::endl;  
-#endif
-		exit(1);
-	}
-	while(file)
-	{
-		std::string line{""};
-		std::getline(file, line);
-		if(!file) break;
-		lines.push_back(line);
+			exit(1);
+		}
+		while(file)
+		{
+			std::string line{""};
+			std::getline(file, line);
+			if(!file) break;
+			lines.push_back(line);
+		}
+	} else {
+		writePermission = true;
+		lines.push_back("");
 	}
 }
 
@@ -139,11 +139,32 @@ void FileEditor::del(bool right) {
 }
 
 void FileEditor::save() {
+	if (path.empty()) throw std::logic_error("Cannot save file with empty path, use saveAs() instead.");
 	std::ofstream file { path };
 	for(const auto& line : lines) {
 		file << line << "\n";
 	}
 }
+void FileEditor::saveAs(const std::string& path) {
+	setPath(path);
+	std::ofstream file { path };
+	for(const auto& line : lines) {
+		file << line << "\n";
+	}
+}
+
+void FileEditor::setPath(const std::string& _path) {
+	fs::path temp = fs::path{_path};
+	this->path = fs::absolute(temp).string();
+	for (int i = path.size() - 1; i >= 0; i--) {
+		if(path[i] == '/' || path[i] == '\\') break;
+		fullFilename += path[i];
+	}
+	std::reverse(fullFilename.begin(), fullFilename.end());
+	filename = fullFilename.substr(0, fullFilename.find('.'));
+	extension = fullFilename.substr(filename.size() + 1);
+}
+
 void FileEditor::close() {
 	lines.clear();
 	lines.shrink_to_fit();

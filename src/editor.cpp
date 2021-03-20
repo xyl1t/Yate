@@ -1,6 +1,7 @@
 #include "editor.hpp"
 #include <ncurses.h>
 #include <unordered_map>
+#include <algorithm>
 
 // Color pairs defines:
 #define PAIR_STANDARD 1
@@ -69,7 +70,7 @@ void Editor::draw() {
 	refresh();
 }
 
-void Editor::getInput() {
+int Editor::getInput() {
 	int input = getch();
 
 	if((input >= 32 && input < 127) || input == KEY_STAB || input == 9) {
@@ -156,32 +157,14 @@ void Editor::getInput() {
 		setStatus(this->statusText + "\tinput: " + std::to_string(input), this->colorPair);
 		customStatusText = false;
 #endif
+
+	return input;
 }
 
 void Editor::put(char ch) {
 	file.put(ch);
 	moveRight();
 }
-
-
-// void Editor::scrollH(int amount) {
-// 	scrollX += std::clamp(scrollX + amount, 0, file.getLineSize() - 1);
-// }
-// void Editor::scrollV(int amount) {
-// 	scrollY += std::clamp(scrollY + amount, 0, file.linesAmount() - 1);
-// }
-// void Editor::scrollUp(int amount) {
-// 	scrollY -= std::clamp(scrollY + amount, 0, file.linesAmount() - 1);
-// }
-// void Editor::scrollDown(int amount) {
-// 	scrollY += std::clamp(scrollY + amount, 0, file.linesAmount() - 1);
-// }
-// void Editor::scrollRight(int amount) {
-// 	scrollX += std::clamp(scrollX + amount, 0, file.getLineSize() - 1);
-// }
-// void Editor::scrollLeft(int amount) {
-// 	scrollX -= std::clamp(scrollX + amount, 0, file.getLineSize() - 1);
-// }
 
 void Editor::moveUp() {
 	if(scrollY - file.getCaretY() >= 0)
@@ -313,8 +296,49 @@ void Editor::deleteCharR() {
 
 void Editor::saveFile() {
 	if (file.hasWritePermission()) {
-		setStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);
-		file.save();
+		if(file.getPath() != "") {
+			file.save();
+			setStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);
+		} else {
+			std::string status {" Specify file name: "};
+			std::string fileName{};
+			setStatus(status, PAIR_INFO);
+			draw();
+			int input{};
+			Caret saveCaret{};
+			while (true) {
+				input = getch();
+				if(input == 10) break;
+				if(input >= 32 && input < 127) {
+					fileName.insert(saveCaret.x, 1, (char)input);
+					saveCaret.x++;
+				}
+				if(input == KEY_RIGHT) {
+					if(saveCaret.x < fileName.length()) saveCaret.x++;
+				}
+				if(input == KEY_LEFT) {
+					if(saveCaret.x > 0) saveCaret.x--;
+				}
+				if(input == 127 && !fileName.empty()) { // BACKSPACE
+					fileName.erase(saveCaret.x - 1, 1);
+					if(saveCaret.x > 0) saveCaret.x--;
+				} 
+				if(input == 330 && !fileName.empty()) { // DEL
+					fileName.erase(saveCaret.x, 1);
+				}
+				if(input == 27 || input == 3) { // ESCAPE or ctrl+c
+					resetStatus();
+					draw();
+					return;
+				}
+				setStatus((std::string{status + fileName}).c_str(), PAIR_INFO);
+				draw();
+				move(getmaxy(stdscr) - 1, saveCaret.x + status.length());
+			}
+			
+			file.saveAs(fileName);
+			setStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);
+		}
 	} else {
 		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
 	}

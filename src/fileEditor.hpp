@@ -84,6 +84,7 @@ public:
 	}
 	
 	void save();
+	void saveAs(const std::string& path);
 	void close();
 	
 	inline bool hasWritePermission() const {
@@ -99,6 +100,8 @@ private:
 	std::string extension;
 	std::vector<std::string> lines;
 	bool writePermission;
+	
+	void setPath(const std::string& _path);
 };
 
 #endif

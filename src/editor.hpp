@@ -11,7 +11,7 @@ public:
 	Editor(const std::string& filePath, int tabSize = 4);
 
 	void draw();
-	void getInput();
+	int getInput();
 	
 	void put(char ch);
 
