@@ -113,10 +113,10 @@ int Editor::getInput() {
 			case KEY_NPAGE:
 			setCaretLocation(caret.x, caret.y + (getTextEditorHeight() - 1));
 				break;
-			case 13:
+			case 11:
 			scrollLeft();
 				break;
-			case 14:
+			case 12:
 			scrollRight();
 				break;
 			case KEY_UP:
@@ -167,6 +167,8 @@ int Editor::getInput() {
 				break;
 		}
 	}
+	if(!(input == 11 || input == 12))
+		scrollToCaret();
 
 	// Reset status on user input if no custom status was applied, if there is a custom status, let it display first and then reset
 	if(!customStatusText) {
@@ -188,9 +190,6 @@ void Editor::put(char ch) {
 }
 
 void Editor::moveUp() {
-	if(scrollY - file.getCaretY() >= 0)
-		scrollUp();
-		
 	if(caret.y - 1 >= 0) {
 		caret.y--;
 		file.moveUp();
@@ -209,10 +208,6 @@ void Editor::moveUp() {
 	scrollToCaret();
 }
 void Editor::moveDown() {
-	if((scrollY + height) - caret.y - 1 <= 0 && caret.y + 1 < file.linesAmount()) {
-		scrollDown();
-	}
-	
 	if(caret.y + 1 < file.linesAmount()) {
 		caret.y++;
 		file.moveDown();
@@ -384,10 +379,11 @@ void Editor::resetStatus() {
 #ifndef NDEBUG
 	sprintf(
 		buffer, 
-		" File: %s\tc.x %2d, c.y %2d, c.sx %2d | f.x %2d, f.y %2d ", 
+		" File: %s | c.x %2d, c.y %2d, c.sx %2d | f.x %2d, f.y %2d | s.x %2d, s.y %2d", 
 		file.getFullFilename().c_str(), 
 		caret.x, caret.y, caret.savedX, 
-		file.getCaretX(), file.getCaretY()
+		file.getCaretX(), file.getCaretY(),
+		scrollX, scrollY
 	);
 	s = buffer;
 #else

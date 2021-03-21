@@ -18,7 +18,14 @@ public:
 	void put(char ch);
 
 	inline void setScrollH(int val) {
-		scrollX = std::clamp(val, 0, file.getLineSize() - 1);
+		int max = 0;
+		for (int lineNr = scrollY; lineNr < scrollY + height && lineNr < file.linesAmount(); lineNr++) {
+			int val = getVirtualLineLength(lineNr);
+			if(val > max) {
+				max = val;
+			}
+		}
+		scrollX = std::clamp(val, 0, max - 1);
 	}
 	inline void setScrollV(int val) {
 		scrollY = std::clamp(val, 0, file.linesAmount() - 1);
@@ -105,6 +112,12 @@ private:
 		return size;
 	}
 	
+	inline int getVirtualLineLength() {
+		return getVirtualLineLength(caret.y);
+	}
+	inline int getVirtualLineLength(int y) {
+		return getVirtualCaretColumn(file.getLineSize(y), y);
+	}	
 	inline int getVirtualCaretColumn(int x, int y) {
 		int size{};
 		const std::string& line = file.getLine(y);
@@ -116,13 +129,6 @@ private:
 			}
 		}
 		return size;
-	}
-	
-	inline int getVirtualLineLength() {
-		return getVirtualLineLength(caret.y);
-	}
-	inline int getVirtualLineLength(int y) {
-		return getVirtualCaretColumn(file.getLineSize(), y);
 	}
 	
 	inline int getFileCaretColumn() {
