@@ -145,9 +145,19 @@ private:
 	}
 	inline void setCaretLocation(int x, int y) {
 		caret.y = std::clamp(y, 0, (int)file.linesAmount() - 1);
-		x = std::clamp(x, 0, (int)getVirtualLineLength(caret.y));
-		file.setCaretLocation(getFileCaretColumn(x), caret.y);
-		caret.x = caret.savedX = getVirtualCaretColumn(file.getCaretX(), file.getCaretY());
+		if(x == caret.x) {
+			if (getVirtualLineLength() < caret.savedX) {
+				caret.x = getVirtualLineLength();
+				file.setCaretLocation(file.getLineSize(), caret.y);
+			} else {
+				file.setCaretLocation(getFileCaretColumn(caret.savedX), caret.y);
+				caret.x = getVirtualCaretColumn(file.getCaretX(), caret.y);
+			}
+		} else {
+			x = std::clamp(x, 0, (int)getVirtualLineLength(caret.y));
+			file.setCaretLocation(getFileCaretColumn(x), caret.y);
+			caret.x = caret.savedX = getVirtualCaretColumn(file.getCaretX(), file.getCaretY());
+		}
 		
 		scrollToCaret();
 	}

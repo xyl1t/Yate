@@ -107,10 +107,10 @@ int Editor::getInput() {
 	{
 		switch(input)
 		{
-			case 22:
+			case KEY_PPAGE:
 			setCaretLocation(caret.x, caret.y - (getTextEditorHeight() - 1));
 				break;
-			case 2:
+			case KEY_NPAGE:
 			setCaretLocation(caret.x, caret.y + (getTextEditorHeight() - 1));
 				break;
 			case 13:
