@@ -57,7 +57,7 @@ FileEditor::FileEditor(const std::string& path)
 		#endif
 		
 		std::ifstream file {path};
-		if (!file) {
+		if (!file.good() && file.bad()) {
 			endwin();
 			std::cout << "Error occured while trying to open " << fullFilename << ".\n";
 #ifndef NDEBUG
@@ -67,13 +67,18 @@ FileEditor::FileEditor(const std::string& path)
 				<< "\nbadbit: " << file.bad() << std::endl;  
 #endif
 			exit(1);
+		} else if(!file.good()) {
+			writePermission = true;
+			lines.push_back("");
 		}
-		while(file)
-		{
-			std::string line{""};
-			std::getline(file, line);
-			if(!file) break;
-			lines.push_back(line);
+		else {
+			while(file)
+			{
+				std::string line{""};
+				std::getline(file, line);
+				if(!file) break;
+				lines.push_back(line);
+			}
 		}
 	} else {
 		writePermission = true;
