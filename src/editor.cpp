@@ -106,9 +106,15 @@ int Editor::getInput() {
 	{
 		switch(input)
 		{
+#ifdef YATE_WINDOWS
+			case 60499:
+#endif
 			case KEY_PPAGE:
 			setCaretLocation(caret.x, caret.y - (getTextEditorHeight() - 1));
 				break;
+#ifdef YATE_WINDOWS
+			case 60498:
+#endif
 			case KEY_NPAGE:
 			setCaretLocation(caret.x, caret.y + (getTextEditorHeight() - 1));
 				break;
@@ -118,22 +124,40 @@ int Editor::getInput() {
 			case 12:
 			scrollRight();
 				break;
+#ifdef YATE_WINDOWS			
+			case 60419:
+#endif
 			case KEY_UP:
 				moveUp();
 				break;
+#ifdef YATE_WINDOWS			
+			case 60418:
+#endif
 			case KEY_DOWN:
 				moveDown();
 				break;
+#ifdef YATE_WINDOWS			
+			case 60420:
+#endif
 			case KEY_LEFT:
 				moveLeft();
 				break;
+#ifdef YATE_WINDOWS			
+			case 60421:
+#endif
 			case KEY_RIGHT:
 				moveRight();
-				break;
+				break;		
+#ifdef YATE_WINDOWS
+			case 60518:
+#endif
 			case 5:
 			case KEY_END:
 				moveEndOfLine(); 
 				break;
+#ifdef YATE_WINDOWS
+			case 60422:
+#endif
 			case KEY_HOME:
 			case 1:
 				moveBeginningOfLine();
@@ -152,6 +176,9 @@ int Editor::getInput() {
 			case 10:
 				newLine();
 				break;
+#ifdef YATE_WINDOWS
+			case 8:
+#endif
 			case KEY_BACKSPACE:
 			case 127:
 				deleteCharL();
@@ -381,10 +408,9 @@ void Editor::resetStatus() {
 #ifndef NDEBUG
 	sprintf(
 		buffer, 
-		" File: %s | c.x %2d, c.y %2d, c.sx %2d | f.x %2d, f.y %2d | s.x %2d, s.y %2d", 
+		" File: %s | c.x %2d, c.y %2d, c.sx %2d | f.x %2d, f.y %2d ", 
 		file.getFullFilename().c_str(), 
 		caret.x, caret.y, caret.savedX, 
-		file.getCaretX(), file.getCaretY(),
 		scrollX, scrollY
 	);
 	s = buffer;
