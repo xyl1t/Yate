@@ -5,12 +5,14 @@
 #include <bitset>
 #include <filesystem>
 namespace  fs = std::filesystem;
-#include <ncurses.h>
 
-#ifdef _WIN32
+#ifdef YATE_WINDOWS
+#include "pdcurses.h"
 #include "Windows.h"
 #endif
+
 #if defined(__linux__) || defined(__APPLE__)
+#include <ncurses.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #endif
@@ -26,13 +28,15 @@ FileEditor::FileEditor(const std::string& path)
 	if (path != "") {
 		setPath(path);
 
-		struct stat file_stat;
-		stat(path.c_str(), &file_stat);
-		uid_t current_uid = getuid();
-		gid_t current_gid = getgid();
 		fs::perms active_perms = fs::status(path).permissions();
 		
-		#if defined(__linux__) || defined(__APPLE__)
+#if defined(__linux__) || defined(__APPLE__)
+		struct stat file_stat;
+		stat(path.c_str(), &file_stat);
+	
+		uid_t current_uid = getuid();
+		gid_t current_gid = getgid();
+
 		if (!(((active_perms & fs::perms::owner_read)  != fs::perms::none && file_stat.st_uid == current_uid) ||
 			((active_perms & fs::perms::group_read)  != fs::perms::none && file_stat.st_gid == current_gid) ||
 			((active_perms & fs::perms::others_read) != fs::perms::none))) {
@@ -43,7 +47,7 @@ FileEditor::FileEditor(const std::string& path)
 		this->writePermission = ((active_perms & fs::perms::owner_write)  != fs::perms::none && file_stat.st_uid == current_uid) ||
 								((active_perms & fs::perms::group_write)  != fs::perms::none && file_stat.st_gid == current_gid) ||
 								((active_perms & fs::perms::others_write) != fs::perms::none);
-		#elif
+#else
 		if (!(((active_perms & fs::perms::owner_read)  != fs::perms::none) ||
 			((active_perms & fs::perms::group_read)  != fs::perms::none) ||
 			((active_perms & fs::perms::others_read) != fs::perms::none))) {
@@ -54,7 +58,7 @@ FileEditor::FileEditor(const std::string& path)
 		this->writePermission = ((active_perms & fs::perms::owner_write)  != fs::perms::none) ||
 								((active_perms & fs::perms::group_write)  != fs::perms::none) ||
 								((active_perms & fs::perms::others_write) != fs::perms::none);
-		#endif
+#endif
 		
 		std::ifstream file {path};
 		if (!file.good() && file.bad()) {

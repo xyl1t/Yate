@@ -3,8 +3,13 @@
 
 #include "fileEditor.hpp"
 #include <string>
-#include <ncurses.h>
 #include <algorithm>
+
+#if defined(YATE_WINDOWS)
+#include "pdcurses.h"
+#else
+#include <ncurses.h>
+#endif
 
 class Editor {
 public:

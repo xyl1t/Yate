@@ -1,5 +1,4 @@
 #include "editor.hpp"
-#include <ncurses.h>
 #include <unordered_map>
 #include <algorithm>
 
@@ -147,6 +146,9 @@ int Editor::getInput() {
 				moveEndOfText(); // TODO: FIX
 				break;
 			case KEY_ENTER:
+#ifdef YATE_WINDOWS
+			case 13:
+#endif
 			case 10:
 				newLine();
 				break;
