@@ -10,14 +10,12 @@
 #define PAIR_INFO 4
 
 Editor::Editor(const std::string& filePath, int tabSize) 
-	: file(filePath), 
-	caret(),
+    : alive(true),
+	file(filePath), 
 	TAB_SIZE(tabSize),
+	caret(),
 	scrollX(0),
 	scrollY(0),
-	width(getmaxx(stdscr) - 4), 
-	height(getmaxy(stdscr) - 2),
-    alive(true),
 	customStatusText(false) {
 	initColorPairs();
 	resetStatus();
@@ -50,7 +48,7 @@ bool Editor::close() {
 
 void Editor::draw() {
 	clear();
-	for (int lineNr = scrollY; lineNr < scrollY + height && lineNr < file.linesAmount(); lineNr++) {
+	for (int lineNr = scrollY; lineNr < scrollY + getTextEditorHeight() && lineNr < file.linesAmount(); lineNr++) {
 		std::string line { file.getLine(lineNr) };
 		int min = getTextEditorWidth();
 		int virtualCol = 0;
@@ -108,16 +106,16 @@ int Editor::getInput() {
 		switch(input)
 		{
 			case KEY_PPAGE:
-			setCaretLocation(caret.x, caret.y - (getTextEditorHeight() - 1));
+				setCaretLocation(caret.x, caret.y - (getTextEditorHeight() - 1));
 				break;
 			case KEY_NPAGE:
-			setCaretLocation(caret.x, caret.y + (getTextEditorHeight() - 1));
+				setCaretLocation(caret.x, caret.y + (getTextEditorHeight() - 1));
 				break;
 			case 11:
-			scrollLeft();
+				scrollLeft();
 				break;
 			case 12:
-			scrollRight();
+				scrollRight();
 				break;
 			case KEY_UP:
 				moveUp();

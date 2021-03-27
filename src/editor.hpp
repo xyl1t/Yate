@@ -5,6 +5,8 @@
 #include <string>
 #include <ncurses.h>
 #include <algorithm>
+#include <functional>
+#include <stack>
 
 class Editor {
 public:
@@ -19,7 +21,7 @@ public:
 
 	inline void setScrollH(int val) {
 		int max = 0;
-		for (int lineNr = scrollY; lineNr < scrollY + height && lineNr < file.linesAmount(); lineNr++) {
+		for (int lineNr = scrollY; lineNr < scrollY + getTextEditorHeight() && lineNr < file.linesAmount(); lineNr++) {
 			int val = getVirtualLineLength(lineNr);
 			if(val > max) {
 				max = val;
@@ -68,32 +70,26 @@ public:
 		return getcury(stdscr);
 	}
 	inline int getTextEditorWidth() const {
-		return width;
+		return getmaxx(stdscr) - 4;
 	}
 	inline int getTextEditorHeight() const {
-		return height;
+		return getmaxy(stdscr) - 2;
 	}
 	
 private:
+	bool alive;
 	FileEditor file;
-	
-	Caret caret;
-	
 	const int TAB_SIZE;
 	
+	Caret caret;
 	int scrollX;
 	int scrollY;
-	int width;
-	int height;
-
-    bool alive;
-
+    
 	std::string statusText;
 	bool customStatusText{false};
 
 	// Color control variable:
 	int colorPair{1};
-	
 	
 	inline int getVirtualCaretColumnToCaret() {
 		return getVirtualCaretColumnToCaret(file.getCaretY());
