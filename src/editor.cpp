@@ -18,12 +18,16 @@ Editor::Editor(const std::string& filePath, int tabSize)
 	scrollY(0),
 	customStatusText(false),
 	undo{},
-	redo{} {
+	redo{} 
+{
 	initColorPairs();
 	resetStatus();
 	customStatusText = false;
 	if (!file.hasWritePermission()) {
 		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
+	}
+	if (!file.getInfoMessage().empty()) {
+		setStatus((std::string)(" " + file.getInfoMessage() + " "), PAIR_WARNING);
 	}
 }
 

@@ -109,6 +109,9 @@ public:
 	inline const Caret& getCarret() const {
 		return this->caret;
 	}
+	inline const std::string& getInfoMessage() const {
+		return infoMessage;
+	}
 	
 	void save();
 	void saveAs(const std::string& path);
@@ -127,6 +130,7 @@ private:
 	std::string extension;
 	std::vector<std::string> lines;
 	bool writePermission;
+	std::string infoMessage;
 	
 	void setPath(const std::string& _path);
 };
