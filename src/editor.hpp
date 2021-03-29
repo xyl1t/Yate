@@ -40,10 +40,10 @@ public:
 	inline void scrollRight(int amount = 1) { scrollH(amount); }
 	inline void scrollLeft(int amount = 1) { scrollH(-amount); }
 
-	void put(int ch);
-	void deleteCharL();
-	void deleteCharR();
-	void newLine();
+	void put(int ch, bool record = true);
+	void deleteCharL(bool record = true);
+	void deleteCharR(bool record = true);
+	void newLine(bool record = true);
 		
 	void moveUp();
 	void moveDown();
@@ -133,12 +133,10 @@ private:
 	int currentAction{};
 	int prevAction{};
 	
-	// void putAction(int ch);
-	// void deleteCharLAction();
-	// void deleteCharRAction();
-	// void newLineAction();
-
-	
+	// Action putAction;
+	// Action deleteCharLAction;
+	// Action deleteCharRAction;
+	// Action newLineAction;
 	
 	inline char getCharAtCaret() {
 		return file.getLine(caret.y)[getFileCaretColumn() - 1];

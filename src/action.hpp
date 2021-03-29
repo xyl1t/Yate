@@ -21,10 +21,10 @@ struct Action {
 	std::function<void()> undoAction;
 	std::function<void()> doAction;
 	
+	Action(const Action& other);
 	Action(ActionType actionType, int action, int x, int y, std::function<void()> undoAction, std::function<void()> doAction);
 
 	void operator()();
-
 	
 	static inline bool isInput(int action) {
 		return (isCharInput(action) || action == 32 || action == KEY_STAB || action == 9 || action == KEY_ENTER || action == 10);
@@ -45,5 +45,11 @@ struct Action {
 		return (isInput(action1) == isInput(action2)) || (isMovement(action1) == isMovement(action2)) || (isDeletion(action1) == isDeletion(action2)) || (isNewLine(action1) == isNewLine(action2));
 	}
 };
+
+namespace Actions {
+inline const Action separator {
+	ActionType::None, 0, 0, 0, nullptr, nullptr
+};
+}
 
 #endif

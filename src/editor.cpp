@@ -101,135 +101,120 @@ int Editor::getInput() {
 	auto actionCount = undo.size() + redo.size();
 	
 	if(Action::isInput(currentAction)) {
-		int beforeX = caret.x;
-		int beforeY = caret.y;
 		put(currentAction);
-		int afterX = caret.x;
-		int afterY = caret.y;
 		if(!file.hasWritePermission()) {
 			setStatus(" Warning: File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
 		}
-		
-		undo.emplace((Action){
-			Action::isNewLine(currentAction) ? ActionType::NewLine : ActionType::Input,
-			currentAction, caret.x, caret.y,
-			[this, x = afterX, y = afterY] {
-				setCaretLocation(x, y);
-				deleteCharL();
-			},
-			[this, act = currentAction, x = beforeX, y = beforeY] {
-				setCaretLocation(x, y);
-				put(static_cast<char>(act));
-			}
-		});
 	}
 	else
 	{
 		switch(currentAction)
 		{
 			case 21: // CTRL+U
+				if(!undo.empty() && undo.top().actionType == Actions::separator.actionType) {
+					redo.emplace(undo.top());
+					undo.pop();
+				}
 				while(!undo.empty()) {
 					Action act{undo.top()};
-					act.undoAction();
-					redo.emplace(act);
+					if(act.actionType != Actions::separator.actionType) {
+						act.undoAction();
+						redo.emplace(act);
+					}
 					undo.pop();
-					if (undo.empty() || 
-						undo.top().actionType != act.actionType || 
-						(act.actionType == ActionType::Input && !Action::isCharInput(act.action)) ||
-						(act.actionType == ActionType::NewLine && Action::isNewLine(act.action) == Action::isNewLine(undo.top().action)) || 
-						((act.actionType == ActionType::DeletionL || act.actionType == ActionType::DeletionR) && act.y != undo.top().y && act.x != undo.top().x)) {
+					if (undo.empty() || undo.top().actionType == Actions::separator.actionType) {
 						break;
 					}
 				}
 				break;
 			
 			case 18: // CTRL+R
+				if(!redo.empty() && redo.top().actionType == Actions::separator.actionType) {
+					undo.emplace(redo.top());
+					redo.pop();
+				}
 				while(!redo.empty()) {
 					Action act{redo.top()};
-					act.doAction();
-					undo.emplace(act);
+					if(act.actionType != Actions::separator.actionType) {
+						act.doAction();
+						undo.emplace(act);
+					}
 					redo.pop();
-					if (redo.empty() || redo.top().actionType != act.actionType || (act.actionType == ActionType::Input && !Action::isCharInput(act.action))) {
+					if (redo.empty() || redo.top().actionType == Actions::separator.actionType) {
 						break;
 					}
 				}
 				break;
 			
-			case KEY_PPAGE:
-				setCaretLocation(caret.x, caret.y - (getTextEditorHeight() - 1));
-				break;
-			case KEY_NPAGE:
-				setCaretLocation(caret.x, caret.y + (getTextEditorHeight() - 1));
-				break;
 			case 11: // CTRL+K
 				scrollLeft();
 				break;
 			case 12:  // CTRL+L
 				scrollRight();
 				break;
+
+			case KEY_PPAGE:
+				setCaretLocation(caret.x, caret.y - (getTextEditorHeight() - 1));
+				if(undo.top().actionType != Actions::separator.actionType)
+					undo.push(Actions::separator);
+				break;
+			case KEY_NPAGE:
+				setCaretLocation(caret.x, caret.y + (getTextEditorHeight() - 1));
+				if(undo.top().actionType != Actions::separator.actionType)
+					undo.push(Actions::separator);
+				break;
 			case KEY_UP:
 				moveUp();
 				break;
 			case KEY_DOWN:
 				moveDown();
+				if(!undo.empty() && undo.top().actionType != Actions::separator.actionType)
+					undo.push(Actions::separator);
 				break;
 			case KEY_LEFT:
 				moveLeft();
+				if(!undo.empty() && undo.top().actionType != Actions::separator.actionType)
+					undo.push(Actions::separator);
 				break;
 			case KEY_RIGHT:
 				moveRight();
+				if(!undo.empty() && undo.top().actionType != Actions::separator.actionType)
+					undo.push(Actions::separator);
 				break;
 			case 5:
 			case KEY_END:
 				moveEndOfLine(); 
+				if(!undo.empty() && undo.top().actionType != Actions::separator.actionType)
+					undo.push(Actions::separator);
 				break;
 			case KEY_HOME:
 			case 1:
 				moveBeginningOfLine();
+				if(!undo.empty() && undo.top().actionType != Actions::separator.actionType)
+					undo.push(Actions::separator);
 				break;
 			case 25: // CTRL+Y (for qwertz layout)
 			case 26: // CTRL+Z (for qwerty layout)
 				moveBeginningOfText(); 
+				if(!undo.empty() && undo.top().actionType != Actions::separator.actionType)
+					undo.push(Actions::separator);
 				break;
 			case 24: // CTRL+X
 				moveEndOfText(); 
+				if(!undo.empty() && undo.top().actionType != Actions::separator.actionType)
+					undo.push(Actions::separator);
 				break;
+				
 			case KEY_BACKSPACE:
-			case 127: {
-				char c = getCharAtCaret();
+			case 127: 
 				deleteCharL();
-				undo.emplace((Action) {
-					ActionType::DeletionL,
-					currentAction, caret.x, caret.y,
-					[this, c, x = caret.x, y = caret.y] {
-						setCaretLocation(x, y);
-						put(c);
-					},
-					[this, x = caret.x, y = caret.y] {
-						setCaretLocation(x + 1, y);
-						deleteCharL();
-					}
-				});
-			} break;
+				break;
 			// NOTE: let's do both KEY_DL and KEY_DC to be safe (famous last words)
 			case 330:
-			case KEY_DL: {
-				char c = file.getLine(caret.y)[getFileCaretColumn()];
+			case KEY_DL: 
 				deleteCharR();
-				undo.emplace((Action){
-					ActionType::DeletionR,
-					currentAction, caret.x, caret.y,
-					[this, c, x = caret.x, y = caret.y] {
-						setCaretLocation(x, y);
-						put(c);
-						setCaretLocation(x, y);
-					},
-					[this, x = caret.x, y = caret.y] {
-						setCaretLocation(x, y);
-						deleteCharR();
-					}
-				});
-			} break;
+				break;
+			
 			case 19:
 				saveFile();
 				break;
@@ -246,7 +231,6 @@ int Editor::getInput() {
 		while (!redo.empty()) redo.pop();
 	}
 	
-	
 	// Reset status on user input if no custom status was applied, if there is a custom status, let it display first and then reset
 	if(!customStatusText) {
 		resetStatus();
@@ -261,12 +245,132 @@ int Editor::getInput() {
 	return currentAction;
 }
 
-void Editor::put(int ch) {
+void Editor::put(int ch, bool record) {
+	ActionType actType = ActionType::Input;
+	int beforeX = caret.x;
+	int beforeY = caret.y;
+	
 	if(ch != KEY_ENTER && ch != 10) {
 		file.put((char)ch);
 		moveRight();
 	} else {
 		newLine();
+		actType = ActionType::NewLine;
+	}
+	
+	if (record) {
+		if(!undo.empty() && undo.top().actionType != Actions::separator.actionType && undo.top().actionType != ActionType::Input) {
+			undo.emplace(Actions::separator);
+		} 
+		
+		undo.emplace((Action){
+			Action::isNewLine(currentAction) ? ActionType::NewLine : ActionType::Input,
+			currentAction, caret.x, caret.y,
+			[this, x = caret.x, y = caret.y] {
+				setCaretLocation(x, y);
+				deleteCharL(false);
+			},
+			[this, act = currentAction, x = beforeX, y = beforeY] {
+				setCaretLocation(x, y);
+				put(static_cast<char>(act), false);
+			}
+		});
+
+		if(ch == ' ') {
+			undo.emplace(Actions::separator);
+		}
+		
+		if(ch == '\n') {
+			undo.emplace(Actions::separator);
+		}
+	}
+}
+void Editor::newLine(bool record) {
+	file.newLine();
+    moveDown();
+	setCaretLocation(0, caret.y);
+}
+void Editor::deleteCharL(bool record) {
+	try {
+		char c{};
+		if(caret.x == 0) {
+			moveLeft();
+			c = '\n';
+			file.del(true);
+		} else {
+			c = file.getLine(caret.y)[getFileCaretColumn(caret.x - 1)];
+			file.del(false);
+			moveLeft();
+		}
+    	if(file.getCaretY() - scrollY < 0) {
+        	scrollY--;
+    	}
+		caret.savedX = caret.x;
+		
+		if (record) {
+			if(!undo.empty() && undo.top().actionType != Actions::separator.actionType  && undo.top().actionType != ActionType::DeletionL) {
+				undo.emplace(Actions::separator);
+			} 
+			
+			undo.emplace((Action) {
+				ActionType::DeletionL,
+				currentAction, caret.x, caret.y,
+				[this, c, x = caret.x, y = caret.y] {
+					setCaretLocation(x, y);
+					put(c, false);
+				},
+				[this, c, x = caret.x, y = caret.y] {
+					if(c != '\n')
+						setCaretLocation(x + 1, y);
+					else 
+						setCaretLocation(0, y + 1);
+					draw();
+					deleteCharL(false);
+				}
+			});
+			
+			if (c == '\n') {
+				undo.emplace(Actions::separator);
+			}
+		}
+	} catch(std::string e) {
+		setStatus(e, PAIR_ERROR);
+	}
+	
+}
+void Editor::deleteCharR(bool record) {
+	try {
+		char c = file.getLine(caret.y)[getFileCaretColumn()];
+		if(caret.x == getVirtualLineLength()) c = '\n';
+		
+		file.del(true);
+		caret.savedX = caret.x;
+
+		if (record) {
+			if(!undo.empty() && undo.top().actionType != Actions::separator.actionType && undo.top().actionType != ActionType::DeletionR) {
+				undo.emplace(Actions::separator);
+			} 
+			
+			undo.emplace((Action){
+				ActionType::DeletionR,
+				currentAction, caret.x, caret.y,
+				[this, c, x = caret.x, y = caret.y] {
+					setCaretLocation(x, y);
+					put(c, false);
+					setCaretLocation(x, y);
+				},
+				[this, x = caret.x, y = caret.y] {
+					setCaretLocation(x, y);
+					deleteCharR(false);
+				}
+			});
+			
+			if (c == '\n') {
+				undo.emplace(Actions::separator);
+			}
+		}
+	} catch(std::string e) {
+		setStatus(e, PAIR_ERROR);
 	}
 }
 
@@ -360,36 +464,6 @@ void Editor::moveEndOfText() {
 		moveRight();
 	}
 }
-void Editor::newLine() {
-	file.newLine();
-    moveDown();
-	setCaretLocation(0, caret.y);
-}
-void Editor::deleteCharL() {
-	try {
-		if(caret.x == 0) {
-			moveLeft();
-			file.del(true);
-		} else {
-			file.del(false);
-			moveLeft();
-		}
-    	if(file.getCaretY() - scrollY < 0) {
-        	scrollY--;
-    	}
-		caret.savedX = caret.x;
-	} catch(std::string e) {
-		setStatus(e, PAIR_ERROR);
-	}
-}
-void Editor::deleteCharR() {
-	try {
-		file.del(true);
-		caret.savedX = caret.x;
-	} catch(std::string e) {
-		setStatus(e, PAIR_ERROR);
-	}
-}
 
 void Editor::saveFile() {
 	if(file.getPath() != "") {
@@ -444,7 +518,7 @@ void Editor::saveFile() {
 			setStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);
 		}
 	}
-}	
+}
 
 void Editor::setStatus(const std::string& message) {
 	setStatus(message, PAIR_STANDARD);
@@ -460,11 +534,29 @@ void Editor::resetStatus() {
 #ifndef NDEBUG	
 	sprintf(
 		buffer, 
-		" File: %s | c.x %2d, c.y %2d", 
+		" File: %s | c.x %2d, c.y %2d ", 
 		file.getFullFilename().c_str(), 
 		caret.x, caret.y
 	);
 	s = buffer;
+	
+	std::stack<Action> u = undo;
+	
+	while (!u.empty()) {
+		Action act = u.top();
+		if(act.action == ' ') {
+			s += '_';
+		} else if(act.action == 0) {
+			s += '|';
+		} else if(act.action == '\n') {
+			s += "\\n";
+		} else if(act.actionType == ActionType::DeletionL || act.actionType == ActionType::DeletionR) {
+			s += "\\d";
+		} else {
+			s += act.action;
+		}
+		u.pop();
+	}
 #else
 	sprintf(
 		buffer, 
