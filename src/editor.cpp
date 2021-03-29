@@ -80,7 +80,7 @@ void Editor::draw() {
 	
 	// print status at bottom of screen
 	this->statusText.resize(getmaxx(stdscr), ' ');
-	mvprintw(getmaxy(stdscr) - 1, 0, this->statusText.c_str());
+	mvprintw(getmaxy(stdscr) - 1, 0, "%s", this->statusText.c_str());
 
 	attroff(COLOR_PAIR(this->colorPair));
 	// Reset color pair:
@@ -155,12 +155,12 @@ int Editor::getInput() {
 
 			case KEY_PPAGE:
 				setCaretLocation(caret.x, caret.y - (getTextEditorHeight() - 1));
-				if(undo.top().actionType != Actions::separator.actionType)
+				if(!undo.empty() && undo.top().actionType != Actions::separator.actionType)
 					undo.push(Actions::separator);
 				break;
 			case KEY_NPAGE:
 				setCaretLocation(caret.x, caret.y + (getTextEditorHeight() - 1));
-				if(undo.top().actionType != Actions::separator.actionType)
+				if(!undo.empty() && undo.top().actionType != Actions::separator.actionType)
 					undo.push(Actions::separator);
 				break;
 			case KEY_UP:
@@ -285,7 +285,7 @@ void Editor::put(int ch, bool record) {
 		}
 	}
 }
-void Editor::newLine(bool record) {
+void Editor::newLine() {
 	file.newLine();
     moveDown();
 	setCaretLocation(0, caret.y);
@@ -512,7 +512,7 @@ void Editor::saveFile() {
 		}
 		
 		if(fileName.empty()) {
-			setStatus(" File not saved because no name specified ", PAIR_INFO);
+			setStatus(" File not saved because no name specified ", PAIR_WARNING);
 		} else {
 			file.saveAs(fileName);
 			setStatus(" File \'" + file.getFullFilename() + "\' has been saved. ", PAIR_INFO);

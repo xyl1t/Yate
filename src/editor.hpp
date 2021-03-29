@@ -43,7 +43,7 @@ public:
 	void put(int ch, bool record = true);
 	void deleteCharL(bool record = true);
 	void deleteCharR(bool record = true);
-	void newLine(bool record = true);
+	void newLine();
 		
 	void moveUp();
 	void moveDown();

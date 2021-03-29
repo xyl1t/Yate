@@ -154,7 +154,11 @@ void FileEditor::setPath(const std::string& _path) {
 	}
 	std::reverse(fullFilename.begin(), fullFilename.end());
 	filename = fullFilename.substr(0, fullFilename.find('.'));
-	extension = fullFilename.substr(filename.size() + 1);
+	if (fullFilename.find('.') != std::string::npos) {
+		extension = fullFilename.substr(filename.size() + 1);
+	} else {
+		extension = "";
+	}
 }
 
 void FileEditor::close() {
