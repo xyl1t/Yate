@@ -86,6 +86,7 @@ FileEditor::FileEditor(const std::string& path)
 		if(!path.empty() && !fs::is_regular_file(path)) {
 			infoMessage = "Path is not direcotry";
 		}
+		this->path = "";
 		writePermission = true;
 		lines.push_back("");
 	}
