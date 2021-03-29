@@ -2,7 +2,7 @@
 #include <ncurses.h>
 #include <unordered_map>
 #include <algorithm>
-
+#include <vector>
 // Color pairs defines:
 #define PAIR_STANDARD 1
 #define PAIR_ERROR 2
@@ -16,7 +16,9 @@ Editor::Editor(const std::string& filePath, int tabSize)
 	caret(),
 	scrollX(0),
 	scrollY(0),
-	customStatusText(false) {
+	customStatusText(false),
+	undo{},
+	redo{} {
 	initColorPairs();
 	resetStatus();
 	customStatusText = false;
@@ -93,28 +95,76 @@ void Editor::draw() {
 }
 
 int Editor::getInput() {
-	int input = getch();
-
-	if((input >= 32 && input < 127) || input == KEY_STAB || input == 9) {
-		put(static_cast<char>(input));
+	prevAction = currentAction;
+	currentAction = getch();
+	
+	auto actionCount = undo.size() + redo.size();
+	
+	if(Action::isInput(currentAction)) {
+		int beforeX = caret.x;
+		int beforeY = caret.y;
+		put(currentAction);
+		int afterX = caret.x;
+		int afterY = caret.y;
 		if(!file.hasWritePermission()) {
 			setStatus(" Warning: File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
 		}
+		
+		undo.emplace((Action){
+			Action::isNewLine(currentAction) ? ActionType::NewLine : ActionType::Input,
+			currentAction, caret.x, caret.y,
+			[this, x = afterX, y = afterY] {
+				setCaretLocation(x, y);
+				deleteCharL();
+			},
+			[this, act = currentAction, x = beforeX, y = beforeY] {
+				setCaretLocation(x, y);
+				put(static_cast<char>(act));
+			}
+		});
 	}
 	else
 	{
-		switch(input)
+		switch(currentAction)
 		{
+			case 21: // CTRL+U
+				while(!undo.empty()) {
+					Action act{undo.top()};
+					act.undoAction();
+					redo.emplace(act);
+					undo.pop();
+					if (undo.empty() || 
+						undo.top().actionType != act.actionType || 
+						(act.actionType == ActionType::Input && !Action::isCharInput(act.action)) ||
+						(act.actionType == ActionType::NewLine && Action::isNewLine(act.action) == Action::isNewLine(undo.top().action)) || 
+						((act.actionType == ActionType::DeletionL || act.actionType == ActionType::DeletionR) && act.y != undo.top().y && act.x != undo.top().x)) {
+						break;
+					}
+				}
+				break;
+			
+			case 18: // CTRL+R
+				while(!redo.empty()) {
+					Action act{redo.top()};
+					act.doAction();
+					undo.emplace(act);
+					redo.pop();
+					if (redo.empty() || redo.top().actionType != act.actionType || (act.actionType == ActionType::Input && !Action::isCharInput(act.action))) {
+						break;
+					}
+				}
+				break;
+			
 			case KEY_PPAGE:
 				setCaretLocation(caret.x, caret.y - (getTextEditorHeight() - 1));
 				break;
 			case KEY_NPAGE:
 				setCaretLocation(caret.x, caret.y + (getTextEditorHeight() - 1));
 				break;
-			case 11:
+			case 11: // CTRL+K
 				scrollLeft();
 				break;
-			case 12:
+			case 12:  // CTRL+L
 				scrollRight();
 				break;
 			case KEY_UP:
@@ -139,24 +189,47 @@ int Editor::getInput() {
 				break;
 			case 25: // CTRL+Y (for qwertz layout)
 			case 26: // CTRL+Z (for qwerty layout)
-				moveBeginningOfText(); // TODO: FIX
+				moveBeginningOfText(); 
 				break;
 			case 24: // CTRL+X
-				moveEndOfText(); // TODO: FIX
-				break;
-			case KEY_ENTER:
-			case 10:
-				newLine();
+				moveEndOfText(); 
 				break;
 			case KEY_BACKSPACE:
-			case 127:
+			case 127: {
+				char c = getCharAtCaret();
 				deleteCharL();
-				break;
+				undo.emplace((Action) {
+					ActionType::DeletionL,
+					currentAction, caret.x, caret.y,
+					[this, c, x = caret.x, y = caret.y] {
+						setCaretLocation(x, y);
+						put(c);
+					},
+					[this, x = caret.x, y = caret.y] {
+						setCaretLocation(x + 1, y);
+						deleteCharL();
+					}
+				});
+			} break;
 			// NOTE: let's do both KEY_DL and KEY_DC to be safe (famous last words)
 			case 330:
-			case KEY_DL:
+			case KEY_DL: {
+				char c = file.getLine(caret.y)[getFileCaretColumn()];
 				deleteCharR();
-				break;
+				undo.emplace((Action){
+					ActionType::DeletionR,
+					currentAction, caret.x, caret.y,
+					[this, c, x = caret.x, y = caret.y] {
+						setCaretLocation(x, y);
+						put(c);
+						setCaretLocation(x, y);
+					},
+					[this, x = caret.x, y = caret.y] {
+						setCaretLocation(x, y);
+						deleteCharR();
+					}
+				});
+			} break;
 			case 19:
 				saveFile();
 				break;
@@ -165,9 +238,15 @@ int Editor::getInput() {
 				break;
 		}
 	}
-	if(!(input == 11 || input == 12))
+	if(!(currentAction == 11 || currentAction == 12))
 		scrollToCaret();
-
+	
+	// if the undo stack changed, that means something changed in the file, therefor flush the redo stack
+	if (undo.size() + redo.size() != actionCount) {
+		while (!redo.empty()) redo.pop();
+	}
+	
+	
 	// Reset status on user input if no custom status was applied, if there is a custom status, let it display first and then reset
 	if(!customStatusText) {
 		resetStatus();
@@ -175,16 +254,20 @@ int Editor::getInput() {
 	customStatusText = false;
 	
 #ifndef NDEBUG
-		setStatus(this->statusText + "\tinput: " + std::to_string(input), this->colorPair);
+		setStatus(this->statusText + "\tinput: " + std::to_string(currentAction), this->colorPair);
 		customStatusText = false;
 #endif
-
-	return input;
+	
+	return currentAction;
 }
 
-void Editor::put(char ch) {
-	file.put(ch);
-	moveRight();
+void Editor::put(int ch) {
+	if(ch != KEY_ENTER && ch != 10) {
+		file.put((char)ch);
+		moveRight();
+	} else {
+		newLine();
+	}
 }
 
 void Editor::moveUp() {
@@ -374,14 +457,12 @@ void Editor::setStatus(const std::string& message, int colorPair) {
 void Editor::resetStatus() {
 	char buffer[256];
 	std::string s{};
-#ifndef NDEBUG
+#ifndef NDEBUG	
 	sprintf(
 		buffer, 
-		" File: %s | c.x %2d, c.y %2d, c.sx %2d | f.x %2d, f.y %2d | s.x %2d, s.y %2d", 
+		" File: %s | c.x %2d, c.y %2d", 
 		file.getFullFilename().c_str(), 
-		caret.x, caret.y, caret.savedX, 
-		file.getCaretX(), file.getCaretY(),
-		scrollX, scrollY
+		caret.x, caret.y
 	);
 	s = buffer;
 #else

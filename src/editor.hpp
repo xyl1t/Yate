@@ -2,11 +2,14 @@
 #define EDITOR_HPP
 
 #include "fileEditor.hpp"
+#include "action.hpp"
 #include <string>
 #include <ncurses.h>
 #include <algorithm>
 #include <functional>
 #include <stack>
+#include <memory>
+#include <utility>
 
 class Editor {
 public:
@@ -16,8 +19,6 @@ public:
 	
 	void draw();
 	int getInput();
-	
-	void put(char ch);
 
 	inline void setScrollH(int val) {
 		int max = 0;
@@ -39,6 +40,11 @@ public:
 	inline void scrollRight(int amount = 1) { scrollH(amount); }
 	inline void scrollLeft(int amount = 1) { scrollH(-amount); }
 
+	void put(int ch);
+	void deleteCharL();
+	void deleteCharR();
+	void newLine();
+		
 	void moveUp();
 	void moveDown();
 	void moveLeft();
@@ -49,9 +55,6 @@ public:
     void moveEndOfText();
 
 	void saveFile();
-    void newLine();
-	void deleteCharL();
-    void deleteCharR();
 	
 	void setStatus(const std::string& message);
 	void setStatus(const std::string& message, int colorPair);
@@ -75,6 +78,38 @@ public:
 	inline int getTextEditorHeight() const {
 		return getmaxy(stdscr) - 2;
 	}
+	inline void setCaretLocation(int x, int y) {
+		caret.y = std::clamp(y, 0, (int)file.linesAmount() - 1);
+		if(x == caret.x) {
+			if (getVirtualLineLength() < caret.savedX) {
+				caret.x = getVirtualLineLength();
+				file.setCaretLocation(file.getLineSize(), caret.y);
+			} else {
+				file.setCaretLocation(getFileCaretColumn(caret.savedX), caret.y);
+				caret.x = getVirtualCaretColumn(file.getCaretX(), caret.y);
+			}
+		} else {
+			x = std::clamp(x, 0, (int)getVirtualLineLength(caret.y));
+			file.setCaretLocation(getFileCaretColumn(x), caret.y);
+			caret.x = caret.savedX = getVirtualCaretColumn(file.getCaretX(), file.getCaretY());
+		}
+		
+		scrollToCaret();
+	}
+	inline void scrollToCaret() {
+		if(caret.x < scrollX) {
+			scrollLeft((scrollX) - (caret.x));
+		}
+		if(caret.x > getTextEditorWidth() - 1 + scrollX) {
+			scrollRight((caret.x) - (getTextEditorWidth() - 1 + scrollX));
+		}
+		if(caret.y < scrollY) {
+			scrollUp((scrollY) - (caret.y));
+		}
+		if(caret.y > getTextEditorHeight() - 1 + scrollY) {
+			scrollDown((caret.y) - (getTextEditorHeight() - 1 + scrollY));
+		}
+	}
 	
 private:
 	bool alive;
@@ -90,6 +125,24 @@ private:
 
 	// Color control variable:
 	int colorPair{1};
+	
+	std::stack<Action> undo;
+	std::stack<Action> redo;
+	// std::shared_ptr<Action> action;
+	
+	int currentAction{};
+	int prevAction{};
+	
+	// void putAction(int ch);
+	// void deleteCharLAction();
+	// void deleteCharRAction();
+	// void newLineAction();
+
+	
+	
+	inline char getCharAtCaret() {
+		return file.getLine(caret.y)[getFileCaretColumn() - 1];
+	}
 	
 	inline int getVirtualCaretColumnToCaret() {
 		return getVirtualCaretColumnToCaret(file.getCaretY());
@@ -144,39 +197,6 @@ private:
 			}
 		}
 		return size;
-	}
-	inline void setCaretLocation(int x, int y) {
-		caret.y = std::clamp(y, 0, (int)file.linesAmount() - 1);
-		if(x == caret.x) {
-			if (getVirtualLineLength() < caret.savedX) {
-				caret.x = getVirtualLineLength();
-				file.setCaretLocation(file.getLineSize(), caret.y);
-			} else {
-				file.setCaretLocation(getFileCaretColumn(caret.savedX), caret.y);
-				caret.x = getVirtualCaretColumn(file.getCaretX(), caret.y);
-			}
-		} else {
-			x = std::clamp(x, 0, (int)getVirtualLineLength(caret.y));
-			file.setCaretLocation(getFileCaretColumn(x), caret.y);
-			caret.x = caret.savedX = getVirtualCaretColumn(file.getCaretX(), file.getCaretY());
-		}
-		
-		scrollToCaret();
-	}
-	
-	inline void scrollToCaret() {
-		if(caret.x < scrollX) {
-			scrollLeft((scrollX) - (caret.x));
-		}
-		if(caret.x > getTextEditorWidth() - 1 + scrollX) {
-			scrollRight((caret.x) - (getTextEditorWidth() - 1 + scrollX));
-		}
-		if(caret.y < scrollY) {
-			scrollUp((scrollY) - (caret.y));
-		}
-		if(caret.y > getTextEditorHeight() - 1 + scrollY) {
-			scrollDown((caret.y) - (getTextEditorHeight() - 1 + scrollY));
-		}
 	}
 };
 
