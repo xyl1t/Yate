@@ -583,7 +583,7 @@ void Editor::resetStatus() {
 
 // Defines color pairs
 void Editor::initColorPairs() const {
-	init_pair(PAIR_ERROR, COLOR_WHITE, COLOR_RED);
+	init_pair(PAIR_ERROR, COLOR_RED, COLOR_WHITE);
 	init_pair(PAIR_STANDARD, COLOR_WHITE, COLOR_BLACK);
 	init_pair(PAIR_WARNING, COLOR_WHITE, COLOR_RED);
 	init_pair(PAIR_INFO, COLOR_WHITE, COLOR_BLUE);
