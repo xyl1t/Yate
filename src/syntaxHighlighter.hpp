@@ -7,6 +7,21 @@
 #include <vector>
 #include "editor.hpp"
 
+// Color pairs defines:
+#define PAIR_STANDARD 1
+#define PAIR_ERROR 2
+#define PAIR_WARNING 2
+#define PAIR_INFO 3
+#define PAIR_OPEN_CLOSE_SYMBOL 4
+// Basic color pairs for syntax highlighting:
+#define PAIR_SYNTAX_RED 11
+#define PAIR_SYNTAX_WHITE 12
+#define PAIR_SYNTAX_CYAN 13
+#define PAIR_SYNTAX_MAGENTA 14
+#define PAIR_SYNTAX_YELLOW 15
+#define PAIR_SYNTAX_GREEN 16
+#define PAIR_SYNTAX_BLUE 17
+
 class Editor;
 
 using featuremap = std::unordered_map<std::string, std::pair<bool, std::string>>;
@@ -82,7 +97,6 @@ class syntaxHighlighter {
 
 	inline bool isKeyword(const std::string& symbol, const std::string& extension) {
 		std::string new_symbol = std::string(symbol);
-		replaceStringInPlace(new_symbol, "*", "");
 		if (keywordmaps.find(extension) != keywordmaps.end()) {
 			keywordmap newKeywordmap = keywordmaps.at(extension);
 			for (int i = 0; i < static_cast<int>(newKeywordmap.size()); i++ ) {
@@ -107,9 +121,9 @@ class syntaxHighlighter {
 	}
 
 	// Parses a line and prints it out
-	void parseLine(const std::string& line, int lineNr, const std::string& extension, const Editor& editor);
+	void parseLine(const std::string& line, int lineNr, const std::string& extension, Editor editor);
 	// Parses a symbol and prints it out
-	void parseSymbol(const std::string& symbol, const std::string& extension, const Editor& editor);
+	void parseSymbol(const std::string& symbol, const std::string& extension, Editor editor);
 	// Parses a colormap and stores it
 	colormap parseColormap(std::ifstream colormap);
 
@@ -266,7 +280,7 @@ class syntaxHighlighter {
 		{}
 	};
 
-	std::unordered_map<std::string, std::unordered_map<std::string, std::pair<bool, std::string>>> featuremaps{
+	std::unordered_map<std::string, featuremap> featuremaps{
 		{"java", javaFeatures},
 		{"haskell", haskellFeatures},
 		{"html", htmlFeatures},
@@ -280,7 +294,7 @@ class syntaxHighlighter {
 		{"csharp", csharpFeatures}
 	};
 
-	std::unordered_map<std::string, std::unordered_map<std::string, std::pair<int, int>>> colormaps{
+	std::unordered_map<std::string, colormap> colormaps{
 		{"java", javaColormap},
 		{"haskell", haskellColormap},
 		{"html", htmlColormap},

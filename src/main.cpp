@@ -1,26 +1,42 @@
 #include <ncurses.h>
 #include "fileEditor.hpp"
 #include "editor.hpp"
+#include <iostream>
 
 // Yate: Yet Another Text Editor
 // Originally created by Xylit (@Xyl1t)
 // Many thanks to @Niki4Tap and @EntireTwix for contributing!
 
 // TODO:
-// * Fix vertical movement when tabs are present
-// * Create a file when no file is specified
 // * Word highlighting 
 //   * Basic keyword highlighting 
 //   * Begin and end parenthesis 
 //   * Custom profile with format: 
 //     extension: <file extension>
 //     <word>: <color>
+// * Options
+//   --path-to-profile    specify the path to .yateprofile
+// * Check for filenames such as %s, %c etc
+// * Simple searching
 // * Check for permissions on windows
 
 int main(int argc, char** argv) {
+
+	int tabSize = 4;
 	std::string path {};
-	if(argc > 1) {
-		path = std::string(argv[1]);
+	for(int i = 1; i < argc; i++) {
+		std::string arg = argv[i];
+		std::stringstream argStream {argv[i]};
+		if(arg.rfind("-t", 0) == 0) {
+			char junk{};
+			argStream >> junk >> junk >> junk;
+			argStream >> tabSize;
+			std::stringstream argVal {argv[i + 1]};
+			argVal >> tabSize;
+			i++;
+		} else {
+			argStream >> path;
+		}
 	}
 	
 	initscr();
@@ -30,15 +46,15 @@ int main(int argc, char** argv) {
 	noecho();
 	keypad(stdscr, true);
 	
-	Editor editor { path };
+	Editor editor { path, tabSize };
 	
 	while(editor.isAlive()) {
 		editor.draw();
 		editor.getInput();
 	}
-	editor.saveFile();
 	
 	endwin();
+	exit(0);
 	
 	return 0;
 }
