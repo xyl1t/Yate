@@ -180,8 +180,11 @@ private:
 		return getFileCaretColumn(getVirtualCaretColumnToCaret());
 	}
 	inline int getFileCaretColumn(int virtualColumn) {
+		return getFileCaretColumn(virtualColumn, caret.y);
+	}
+	inline int getFileCaretColumn(int virtualColumn, int y) {
 		int size{};
-		const std::string& line = file.getLine(caret.y);
+		const std::string& line = file.getLine(y);
 		for (int col = 0; col < virtualColumn;) {
 			if(line[size] == '\t') {
 				col += TAB_SIZE - (col) % TAB_SIZE;

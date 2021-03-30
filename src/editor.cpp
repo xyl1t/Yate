@@ -329,12 +329,16 @@ void Editor::deleteCharL(bool record) {
 					put(c, false);
 				},
 				[this, c, x = caret.x, y = caret.y] {
-					if(c != '\n')
-						setCaretLocation(x + 1, y);
-					else 
-						setCaretLocation(0, y + 1);
-					draw();
-					deleteCharL(false);
+					if(c == '\t') {
+						setCaretLocation(x, y);
+						deleteCharR(false);
+					} else {
+						if(c != '\n')
+							setCaretLocation(x + 1, y);
+						else 
+							setCaretLocation(0, y + 1);
+						deleteCharL(false);
+					}
 				}
 			});
 			
