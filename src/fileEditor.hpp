@@ -5,47 +5,81 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <algorithm>
 
-struct Carret {
-	int x;
-	int y;
-	int maxX;
-};
+#include "caret.hpp"
 
 class FileEditor {
 public: 
 	FileEditor(const std::string& path);
 	
-	inline void setCarretLocation(size_t x, size_t y) {
-		carret.y = (y > lines.size()) ? lines.size() - 1 : y;
-		carret.x = carret.maxX = (x > lines[y].size()) ? lines[y].size() : x;
+	inline void setCaretLocation(int x, int y) {
+		caret.y = std::clamp(y, 0, (int)lines.size() - 1);
+		caret.x = std::clamp(x, 0, (int)lines[caret.y].size());
+	}
+	inline void moveCaret(int x, int y) {
+		setCaretLocation(caret.x + x, caret.y + y);
 	}
 	
-	void moveUp();
-	void moveDown();
-	void moveLeft();
-	void moveRight();
+	inline void moveUp() {
+		moveCaret(0, -1);
+	}
+	inline void moveDown() {
+		moveCaret(0, 1);
+	}
+	inline void moveLeft(){ 
+		moveCaret(-1, 0);
+	}
+	inline void moveRight(){ 
+		moveCaret(1, 0);
+	}
 	
-	inline void put(const char& ch) {
-		lines[carret.y].insert(carret.x, 1, ch);
-		moveRight();
+	inline void put(char ch) {
+		lines[caret.y].insert(caret.x, 1, ch);
 	}
 	inline void put(const std::string& str) {
-		lines[carret.y].insert(carret.x, str);
-		setCarretLocation(carret.x + str.size(), carret.y);
+		lines[caret.y].insert(caret.x, str);
+		setCaretLocation(caret.x + str.size(), caret.y);
 	}
 	void del(bool right);
 	
 	void newLine();
 	
+	bool hasFileContentChanged() {
+		if(!hasWritePermission()) {
+			return false;
+		}
+		if(path == "") {
+			if (lines.size() > 1 || !lines[0].empty()) return true; 
+			else return false;
+		} 
+		
+		std::fstream file {path};
+		size_t row = 0;
+		while(file) {
+			std::string line{""};
+			std::getline(file, line);
+			if(!file) break;
+			if(line.length() != lines[row].length()) return true;
+			for(size_t i = 0; i < line.length(); i++) {
+				if(line[i] != lines[row][i]) return true;
+			}
+			row++;
+			if(row > lines.size()) return true;
+		}
+		if(row != lines.size()) return true;
+
+		return false;
+	}
+	
 	inline const std::string& getLine() const {
-		return lines[carret.y];
+		return lines[caret.y];
 	}
 	inline const std::string& getLine(size_t lineNr) const {
 		return lines[lineNr];
 	}
 	inline int getLineSize() const {
-		return lines[carret.y].size();
+		return lines[caret.y].size();
 	}
 	inline int getLineSize(size_t lineNr) const {
 		return lines[lineNr].size();
@@ -66,14 +100,18 @@ public:
 		return lines.size();
 	}
 	
-	inline int getCarretX() const {
-		return carret.x;
+	inline int getCaretX() const {
+		return caret.x;
 	}
-	inline int getCarretY() const {
-		return carret.y;
+	inline int getCaretY() const {
+		return caret.y;
+	}
+	inline const Caret& getCarret() const {
+		return this->caret;
 	}
 	
 	void save();
+	void saveAs(const std::string& path);
 	void close();
 	
 	inline bool hasWritePermission() const {
@@ -82,13 +120,15 @@ public:
 
 	
 private:
-	Carret carret;
+	Caret caret;
 	std::string path;
 	std::string fullFilename;
 	std::string filename;
 	std::string extension;
 	std::vector<std::string> lines;
 	bool writePermission;
+	
+	void setPath(const std::string& _path);
 };
 
 #endif

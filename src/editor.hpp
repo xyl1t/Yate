@@ -4,44 +4,50 @@
 #include "syntaxHighlighter.hpp"
 #include "fileEditor.hpp"
 #include <string>
-
-// Color pairs defines:
-#define PAIR_STANDARD 1
-#define PAIR_ERROR 2
-#define PAIR_INFO 3
-#define PAIR_OPEN_CLOSE_SYMBOL 4
-#define PAIR_RESERVED_FOR_CUSTOM 5
-// Basic color pairs for syntax highlighting:
-#define PAIR_SYNTAX_RED 11
-#define PAIR_SYNTAX_WHITE 12
-#define PAIR_SYNTAX_CYAN 13
-#define PAIR_SYNTAX_MAGENTA 14
-#define PAIR_SYNTAX_YELLOW 15
-#define PAIR_SYNTAX_GREEN 16
-#define PAIR_SYNTAX_BLUE 17
+#include <ncurses.h>
+#include <algorithm>
 
 class Editor {
 public:
-	Editor(const std::string& filePath);
-
-	void draw();
-	void getInput();
+	Editor(const std::string& filePath, int tabSize = 4);
 	
-	void scrollUp();
-	void scrollDown();
-	void scrollLeft();
-	void scrollRight();
+	bool close();
+	
+	void draw();
+	int getInput();
+	
+	void put(char ch);
+
+	inline void setScrollH(int val) {
+		int max = 0;
+		for (int lineNr = scrollY; lineNr < scrollY + height && lineNr < file.linesAmount(); lineNr++) {
+			int val = getVirtualLineLength(lineNr);
+			if(val > max) {
+				max = val;
+			}
+		}
+		scrollX = std::clamp(val, 0, max - 1);
+	}
+	inline void setScrollV(int val) {
+		scrollY = std::clamp(val, 0, file.linesAmount() - 1);
+	}
+	inline void scrollH(int amount) { setScrollH(scrollX + amount); }
+	inline void scrollV(int amount) { setScrollV(scrollY + amount); }
+	inline void scrollUp(int amount = 1) { scrollV(-amount); }
+	inline void scrollDown(int amount = 1) { scrollV(amount); }
+	inline void scrollRight(int amount = 1) { scrollH(amount); }
+	inline void scrollLeft(int amount = 1) { scrollH(-amount); }
 
 	void moveUp();
 	void moveDown();
 	void moveLeft();
 	void moveRight();
-
-	void saveFile();
 	void moveBeginningOfLine();
 	void moveEndOfLine();
     void moveBeginningOfText();
     void moveEndOfText();
+
+	void saveFile();
     void newLine();
 	void deleteCharL();
     void deleteCharR();
@@ -56,22 +62,134 @@ public:
     inline bool isAlive() const {
         return alive;
     }
-    
+	inline int getOnScreenCursorX() const {
+		return getcurx(stdscr);
+	}
+	inline int getOnScreenCursorY() const {
+		return getcury(stdscr);
+	}
+	inline int getTextEditorWidth() const {
+		return width;
+	}
+	inline int getTextEditorHeight() const {
+		return height;
+	}
+	inline int getTabSize() const {
+		return TAB_SIZE;
+	}
+	inline int getScrollX() const {
+		return scrollX;
+	}
+	
 private:
 	FileEditor file;
 	syntaxHighlighter syntaxHG;
+	
+	Caret caret;
+	
+	const int TAB_SIZE;
 	
 	int scrollX;
 	int scrollY;
 	int width;
 	int height;
-    
+
     bool alive;
 
 	std::string statusText;
+	bool customStatusText{false};
 
 	// Color control variable:
 	int colorPair{1};
+	
+	
+	inline int getVirtualCaretColumnToCaret() {
+		return getVirtualCaretColumnToCaret(file.getCaretY());
+	}
+	
+	inline int getVirtualCaretColumnToCaret(int row) {
+		int size{};
+		const std::string& line = file.getLine(row);
+		for (int col = 0; col < file.getCaretX(); col++) {
+			if(line[col] != '\t') {
+				size++;
+			} else {
+				size += TAB_SIZE - (size) % TAB_SIZE;
+			}
+		}
+		return size;
+	}
+	
+	inline int getVirtualLineLength() {
+		return getVirtualLineLength(caret.y);
+	}
+	inline int getVirtualLineLength(int y) {
+		return getVirtualCaretColumn(file.getLineSize(y), y);
+	}	
+	inline int getVirtualCaretColumn(int x, int y) {
+		int size{};
+		const std::string& line = file.getLine(y);
+		for (int col = 0; col < x; col++) {
+			if(line[col] != '\t') {
+				size++;
+			} else {
+				size += TAB_SIZE - (size) % TAB_SIZE;
+			}
+		}
+		return size;
+	}
+	
+	inline int getFileCaretColumn() {
+		return getFileCaretColumn(getVirtualCaretColumnToCaret());
+	}
+	inline int getFileCaretColumn(int virtualColumn) {
+		int size{};
+		const std::string& line = file.getLine(caret.y);
+		for (int col = 0; col < virtualColumn;) {
+			if(line[size] == '\t') {
+				col += TAB_SIZE - (col) % TAB_SIZE;
+			} else {
+				col++;
+			}
+			if(col <= virtualColumn) {
+				size++;
+			}
+		}
+		return size;
+	}
+	inline void setCaretLocation(int x, int y) {
+		caret.y = std::clamp(y, 0, (int)file.linesAmount() - 1);
+		if(x == caret.x) {
+			if (getVirtualLineLength() < caret.savedX) {
+				caret.x = getVirtualLineLength();
+				file.setCaretLocation(file.getLineSize(), caret.y);
+			} else {
+				file.setCaretLocation(getFileCaretColumn(caret.savedX), caret.y);
+				caret.x = getVirtualCaretColumn(file.getCaretX(), caret.y);
+			}
+		} else {
+			x = std::clamp(x, 0, (int)getVirtualLineLength(caret.y));
+			file.setCaretLocation(getFileCaretColumn(x), caret.y);
+			caret.x = caret.savedX = getVirtualCaretColumn(file.getCaretX(), file.getCaretY());
+		}
+		
+		scrollToCaret();
+	}
+	
+	inline void scrollToCaret() {
+		if(caret.x < scrollX) {
+			scrollLeft((scrollX) - (caret.x));
+		}
+		if(caret.x > getTextEditorWidth() - 1 + scrollX) {
+			scrollRight((caret.x) - (getTextEditorWidth() - 1 + scrollX));
+		}
+		if(caret.y < scrollY) {
+			scrollUp((scrollY) - (caret.y));
+		}
+		if(caret.y > getTextEditorHeight() - 1 + scrollY) {
+			scrollDown((caret.y) - (getTextEditorHeight() - 1 + scrollY));
+		}
+	}
 };
 
 #endif
