@@ -74,17 +74,15 @@ FileEditor::FileEditor(const std::string& path)
 			lines.push_back("");
 		}
 		else {
-			while(file)
-			{
+			while(file) {
 				std::string line{""};
 				std::getline(file, line);
-				if(!file) break;
 				lines.push_back(line);
 			}
 		}
 	} else {
 		if(!path.empty() && !fs::is_regular_file(path)) {
-			infoMessage = "Path is not direcotry";
+			infoMessage = " Path is not a file ";
 		}
 		this->path = "";
 		writePermission = true;
@@ -139,9 +137,10 @@ void FileEditor::del(bool right) {
 void FileEditor::save() {
 	if (path.empty()) throw std::logic_error("Cannot save file with empty path, use saveAs() instead.");
 	std::ofstream file { path };
-	for(const auto& line : lines) {
-		file << line << "\n";
+	for (int i = 0; i < (int)lines.size() - 1; i++) {
+		file << lines[i] << "\n";
 	}
+	file << lines[lines.size() - 1];
 }
 void FileEditor::saveAs(const std::string& path) {
 	setPath(path);
