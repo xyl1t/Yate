@@ -78,6 +78,11 @@ void Editor::draw() {
 		}
 	}
 
+	drawStatus();
+	
+	refresh();
+}
+void Editor::drawStatus() {
 	// turn on and set color for status
 	attron(A_STANDOUT);
 	attron(COLOR_PAIR(this->colorPair));
@@ -90,12 +95,8 @@ void Editor::draw() {
 	// Reset color pair:
 	this->colorPair = PAIR_STANDARD;
 	attroff(A_STANDOUT);
-
-	// std::string cursorText = file.getLine(file.getCaretY()).substr(0, file.getCaretX());
-	// mvprintw(file.getCaretY() - scrollY, 4, cursorText.c_str());
 	
 	move(caret.y - scrollY, caret.x - scrollX + 4);
-	refresh();
 }
 
 int Editor::getInput() {
@@ -217,6 +218,10 @@ int Editor::getInput() {
 			case 330:
 			case KEY_DL: 
 				deleteCharR();
+				break;
+			
+			case 6: // CTRL+F
+				find();
 				break;
 			
 			case 19:
@@ -469,6 +474,162 @@ void Editor::moveEndOfText() {
 	}
 }
 
+std::string Editor::getInputInStatus(std::string statusText, int colorPair, const std::string& preset) {
+	std::string status {statusText};
+	std::string output{preset};
+	setStatus((std::string{status + output + " "}).c_str(), colorPair);
+	drawStatus();
+	int input{};
+	Caret statusCaret{(int)preset.size(), 0};
+	move(getmaxy(stdscr) - 1, statusCaret.x + status.length());
+	while (true) {
+		input = getch();
+		if(input == 10) break;
+		if(input >= 32 && input < 127) {
+			output.insert(statusCaret.x, 1, (char)input);
+			statusCaret.x++;
+		}
+		if(input == KEY_RIGHT) {
+			if(statusCaret.x < (int)output.length()) statusCaret.x++;
+		}
+		if(input == KEY_LEFT) {
+			if(statusCaret.x > 0) statusCaret.x--;
+		}
+		if(input == 127 && !output.empty()) { // BACKSPACE
+			output.erase(statusCaret.x - 1, 1);
+			if(statusCaret.x > 0) statusCaret.x--;
+		} 
+		if(input == 330 && !output.empty()) { // DEL
+			output.erase(statusCaret.x, 1);
+		}
+		if(input == 27 || input == 3) { // ESCAPE or ctrl+c
+			resetStatus();
+			drawStatus();
+			return "\0";
+		}
+		setStatus((std::string{status + output + " "}).c_str(), colorPair);
+		drawStatus();
+		move(getmaxy(stdscr) - 1, statusCaret.x + status.length());
+	}
+	resetStatus();
+	drawStatus();
+	return output;
+}
+
+void Editor::find() {
+	std::string newWord{getInputInStatus(" Find: ", PAIR_INFO)};
+	std::string word{};
+	
+	Caret current = this->caret;
+	int currentScrollX = this->scrollX;
+	int currentScrollY = this->scrollY;
+	std::vector<Caret> occurrences{};
+	int occurrenceCount{};
+
+	while(!newWord.empty()) {
+		if(newWord != word) {
+			word = newWord;
+			occurrenceCount = -1;	
+			occurrences.clear(); occurrences.shrink_to_fit();
+
+			for (int i = 0; i < file.linesAmount(); i++) {
+				const std::string& line = file.getLine(i);
+				auto pos = line.find(word);
+				
+				if(pos != line.npos) {
+					occurrences.emplace_back((Caret){getVirtualCaretColumn(pos, i), i});
+					if (occurrenceCount == -1 && occurrences[occurrences.size()-1].y >= current.y && (occurrences[occurrences.size()-1].x >= current.x || occurrences[occurrences.size()-1].y > current.y)) {
+							occurrenceCount = occurrences.size()-1;
+						
+					}
+				}
+			}
+			if(occurrenceCount == -1) {
+				occurrenceCount = occurrences.size() - 1;
+			}
+		}
+		
+		scrollX = 0;
+		setCaretLocation(occurrences[occurrenceCount].x + newWord.size(), occurrences[occurrenceCount].y);
+		draw();
+		
+		for (int j = 0; j < (int)occurrences.size(); j++) {
+			const auto& oc = occurrences[j];
+			
+			int onScreenPos = oc.x + 4;
+			if(oc.y >= scrollY && oc.y < scrollY + getTextEditorHeight() && onScreenPos >= scrollX && onScreenPos < scrollX + getTextEditorWidth()) {
+				move(oc.y - scrollY, oc.x + 4 - scrollX);
+				if(j == occurrenceCount)
+					attron(COLOR_PAIR(PAIR_INFO));
+				else
+					attron(A_STANDOUT);
+				printw(word.c_str());
+				if(j == occurrenceCount)
+					attroff(COLOR_PAIR(PAIR_INFO));
+				else
+					attroff(A_STANDOUT);
+			}
+		}
+		
+		std::string status {" Find (" + std::to_string(occurrences.size()) + " occurrences found): " };
+		int input{};
+		Caret statusCaret{(int)newWord.size(), 0};
+		setStatus((std::string{status + newWord + " "}).c_str(), PAIR_INFO);
+		drawStatus();
+
+		move(getmaxy(stdscr) - 1, statusCaret.x + status.length());
+		while (true) {
+			input = getch();
+			if(input == 10) {
+				//
+				// TODO: set cursor at occurrence
+				//
+				return;
+			}
+			if(input >= 32 && input < 127) {
+				newWord.insert(statusCaret.x, 1, (char)input);
+				statusCaret.x++;
+			}
+			if(input == KEY_RIGHT) {
+				if(statusCaret.x < (int)newWord.length()) statusCaret.x++;
+			}
+			if(input == KEY_LEFT) {
+				if(statusCaret.x > 0) statusCaret.x--;
+			}
+			if(input == 127 && !newWord.empty()) { // BACKSPACE
+				newWord.erase(statusCaret.x - 1, 1);
+				if(statusCaret.x > 0) statusCaret.x--;
+			} 
+			if(input == 330 && !newWord.empty()) { // DEL
+				newWord.erase(statusCaret.x, 1);
+			}
+			if(input == 27 || input == 3) { // ESCAPE or ctrl+c
+				resetStatus();
+				drawStatus();
+				scrollX = currentScrollX;
+				scrollY = currentScrollY;
+				setCaretLocation(current.x, current.y);
+				return;
+			}
+			if(input == KEY_UP) {
+				occurrenceCount--;
+				break;
+			}
+			if(input == KEY_DOWN) {
+				occurrenceCount++;
+				break;
+			}
+			
+			setStatus((std::string{status + newWord + " "}).c_str(), PAIR_INFO);
+			drawStatus();
+			move(getmaxy(stdscr) - 1, statusCaret.x + status.length());
+		}
+		if(occurrenceCount < 0) 
+			occurrenceCount = occurrences.size() - 1;
+		if(occurrenceCount >= (int)occurrences.size()) 
+			occurrenceCount = 0;
+	}
+}
 void Editor::saveFile() {
 	if(file.getPath() != "") {
 		if (file.hasWritePermission()) {
@@ -478,42 +639,7 @@ void Editor::saveFile() {
 			setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
 		}
 	} else {
-		std::string status {" Specify file name: "};
-		std::string fileName{};
-		setStatus(status, PAIR_INFO);
-		draw();
-		int input{};
-		Caret saveCaret{};
-		move(getmaxy(stdscr) - 1, saveCaret.x + status.length());
-		while (true) {
-			input = getch();
-			if(input == 10) break;
-			if(input >= 32 && input < 127) {
-				fileName.insert(saveCaret.x, 1, (char)input);
-				saveCaret.x++;
-			}
-			if(input == KEY_RIGHT) {
-				if(saveCaret.x < (int)fileName.length()) saveCaret.x++;
-			}
-			if(input == KEY_LEFT) {
-				if(saveCaret.x > 0) saveCaret.x--;
-			}
-			if(input == 127 && !fileName.empty()) { // BACKSPACE
-				fileName.erase(saveCaret.x - 1, 1);
-				if(saveCaret.x > 0) saveCaret.x--;
-			} 
-			if(input == 330 && !fileName.empty()) { // DEL
-				fileName.erase(saveCaret.x, 1);
-			}
-			if(input == 27 || input == 3) { // ESCAPE or ctrl+c
-				resetStatus();
-				draw();
-				return;
-			}
-			setStatus((std::string{status + fileName + " "}).c_str(), PAIR_INFO);
-			draw();
-			move(getmaxy(stdscr) - 1, saveCaret.x + status.length());
-		}
+		std::string fileName = getInputInStatus(" Specify file name: ", PAIR_INFO);
 		
 		if(fileName.empty()) {
 			setStatus(" File not saved because no name specified ", PAIR_WARNING);

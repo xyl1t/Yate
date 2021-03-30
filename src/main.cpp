@@ -44,6 +44,7 @@ int main(int argc, char** argv) {
 	raw();
 	refresh();
 	noecho();
+	set_escdelay(0);
 	keypad(stdscr, true);
 	
 	Editor editor { path, tabSize };

@@ -18,6 +18,7 @@ public:
 	bool close();
 	
 	void draw();
+	void drawStatus();
 	int getInput();
 
 	inline void setScrollH(int val) {
@@ -54,6 +55,7 @@ public:
     void moveBeginningOfText();
     void moveEndOfText();
 
+	void find();
 	void saveFile();
 	
 	void setStatus(const std::string& message);
@@ -128,15 +130,11 @@ private:
 	
 	std::stack<Action> undo;
 	std::stack<Action> redo;
-	// std::shared_ptr<Action> action;
 	
 	int currentAction{};
 	int prevAction{};
 	
-	// Action putAction;
-	// Action deleteCharLAction;
-	// Action deleteCharRAction;
-	// Action newLineAction;
+	std::string getInputInStatus(std::string statusText, int colorPair, const std::string& preset = "");
 	
 	inline char getCharAtCaret() {
 		return file.getLine(caret.y)[getFileCaretColumn() - 1];
