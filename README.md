@@ -1,5 +1,6 @@
 [![](https://img.shields.io/badge/License-MIT-informational.svg)](https://github.com/xyl1t/Yate/blob/master/LICENSE)
 [![](https://img.shields.io/badge/Dependency-C%2B%2B17-critical)](https://en.cppreference.com/w/cpp/compiler_support/17)
+[![](https://img.shields.io/badge/Dependency-CMake-critical)](https://cmake.org/)
 [![](https://img.shields.io/badge/Dependency-ncurses-critical)](https://invisible-island.net/ncurses/)
 # Yate
 Yate stands for "Yet another text editor"
