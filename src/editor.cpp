@@ -1,13 +1,8 @@
 #include "editor.hpp"
+#include "syntaxHighlighter.hpp"
 #include <ncurses.h>
 #include <unordered_map>
 #include <algorithm>
-
-// Color pairs defines:
-#define PAIR_STANDARD 1
-#define PAIR_ERROR 2
-#define PAIR_WARNING 3
-#define PAIR_INFO 4
 
 Editor::Editor(const std::string& filePath, int tabSize) 
 	: file(filePath), 
@@ -23,8 +18,9 @@ Editor::Editor(const std::string& filePath, int tabSize)
 	resetStatus();
 	customStatusText = false;
 	if (!file.hasWritePermission()) {
-		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
+		setStatus(" File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
 	}
+	syntaxHighlighter syntaxHG{};
 }
 
 bool Editor::close() {
@@ -50,15 +46,21 @@ bool Editor::close() {
 
 void Editor::draw() {
 	clear();
+	
+	syntaxHG.resetAllFlags();
 	for (int lineNr = scrollY; lineNr < scrollY + height && lineNr < file.linesAmount(); lineNr++) {
 		std::string line { file.getLine(lineNr) };
-		int min = getTextEditorWidth();
 		int virtualCol = 0;
+		int min = getTextEditorWidth();
 		
+		syntaxHG.resetLineSpecificFlags();
+		std::vector<std::string> splittedLine = syntaxHG.splitBySpecialChars(line, this->file.getFileExtension());
+
 		move(lineNr - scrollY, 0);
+
 		printw("%3d ", lineNr + 1);
-		for (char ch : line) {
-			if(ch == '\t') {
+		for (std::string symbol : splittedLine) {
+			if (symbol == "\t") {
 				const int tabSize = TAB_SIZE - (virtualCol) % TAB_SIZE;
 				for(int original = virtualCol; virtualCol < original + tabSize; virtualCol++) {
 					if(virtualCol >= scrollX && virtualCol - scrollX < min) {
@@ -67,28 +69,29 @@ void Editor::draw() {
 				}
 			} else {
 				if(virtualCol >= scrollX && virtualCol - scrollX < min) {
-					printw("%c", ch);
+					syntaxHG.parseSymbol(symbol, this->file.getFileExtension(), *this);
 				}
-				virtualCol++;
+				virtualCol += symbol.size();
 			}
 		}
 	}
 
-	// turn on and set color for status
+	// Turn on and set color for status
 	attron(A_STANDOUT);
-	attron(COLOR_PAIR(this->colorPair));
+	if (has_colors()) {
+		attron(COLOR_PAIR(this->colorPair));
+	}
 	
-	// print status at bottom of screen
+	// Print status at bottom of screen
 	this->statusText.resize(getmaxx(stdscr), ' ');
 	mvprintw(getmaxy(stdscr) - 1, 0, this->statusText.c_str());
 
-	attroff(COLOR_PAIR(this->colorPair));
-	// Reset color pair:
-	this->colorPair = PAIR_STANDARD;
+	if (has_colors()) {
+		attroff(COLOR_PAIR(this->colorPair));
+		// Reset color pair:
+		this->colorPair = PAIR_STANDARD;
+	}
 	attroff(A_STANDOUT);
-
-	// std::string cursorText = file.getLine(file.getCaretY()).substr(0, file.getCaretX());
-	// mvprintw(file.getCaretY() - scrollY, 4, cursorText.c_str());
 	
 	move(caret.y - scrollY, caret.x - scrollX + 4);
 	refresh();
@@ -100,7 +103,7 @@ int Editor::getInput() {
 	if((input >= 32 && input < 127) || input == KEY_STAB || input == 9) {
 		put(static_cast<char>(input));
 		if(!file.hasWritePermission()) {
-			setStatus(" Warning: File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
+			setStatus(" Warning: File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_ERROR);
 		}
 	}
 	else
@@ -177,8 +180,8 @@ int Editor::getInput() {
 	customStatusText = false;
 	
 #ifndef NDEBUG
-		setStatus(this->statusText + "\tinput: " + std::to_string(input), this->colorPair);
-		customStatusText = false;
+		setStatus(this->statusText + "\tinput: " + std::to_string(input), PAIR_STANDARD);
+		setStatus(this->statusText + "\tCOLORS: " + std::to_string(COLORS), PAIR_STANDARD);
 #endif
 
 	return input;
@@ -376,17 +379,18 @@ void Editor::setStatus(const std::string& message, int colorPair) {
 void Editor::resetStatus() {
 	char buffer[256];
 	std::string s{};
-#ifndef NDEBUG
+	#ifndef NDEBUG
 	sprintf(
 		buffer, 
-		" File: %s | c.x %2d, c.y %2d, c.sx %2d | f.x %2d, f.y %2d | s.x %2d, s.y %2d", 
+		" File: %s | c.x %2d, c.y %2d, c.sx %2d | f.x %2d, f.y %2d | s.x %2d, s.y %2d | COLORS: %2d", 
 		file.getFullFilename().c_str(), 
 		caret.x, caret.y, caret.savedX, 
 		file.getCaretX(), file.getCaretY(),
-		scrollX, scrollY
+		scrollX, scrollY,
+		COLORS
 	);
 	s = buffer;
-#else
+	#else
 	sprintf(
 		buffer, 
 		" File: %s", 
@@ -402,7 +406,7 @@ void Editor::resetStatus() {
 	s = left;
 	s.resize(getmaxx(stdscr), ' ');
 	s.insert(s.length() - right.size(), right);
-#endif
+	#endif
 	setStatus(s);
 }
 
@@ -410,6 +414,15 @@ void Editor::resetStatus() {
 void Editor::initColorPairs() const {
 	init_pair(PAIR_ERROR, COLOR_WHITE, COLOR_RED);
 	init_pair(PAIR_STANDARD, COLOR_WHITE, COLOR_BLACK);
-	init_pair(PAIR_WARNING, COLOR_WHITE, COLOR_RED);
-	init_pair(PAIR_INFO, COLOR_WHITE, COLOR_BLUE);
+	init_pair(PAIR_INFO, COLOR_WHITE, COLOR_CYAN);
+	init_pair(PAIR_OPEN_CLOSE_SYMBOL, COLOR_WHITE, COLOR_GREEN);
+	// For syntax highlighting
+	init_pair(PAIR_SYNTAX_BLUE, COLOR_BLUE, COLOR_BLACK);
+	init_pair(PAIR_SYNTAX_WHITE, COLOR_WHITE, COLOR_BLACK);
+	init_pair(PAIR_SYNTAX_CYAN, COLOR_CYAN, COLOR_BLACK);
+	init_pair(PAIR_SYNTAX_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
+	init_pair(PAIR_SYNTAX_YELLOW, COLOR_YELLOW, COLOR_BLACK);
+	init_pair(PAIR_SYNTAX_GREEN, COLOR_GREEN, COLOR_BLACK);
+	init_pair(PAIR_SYNTAX_RED, COLOR_RED, COLOR_BLACK);
+
 }

@@ -60,23 +60,22 @@ FileEditor::FileEditor(const std::string& path)
 		if (!file.good() && file.bad()) {
 			endwin();
 			std::cout << "Error occured while trying to open " << fullFilename << ".\n";
-#ifndef NDEBUG
+			#ifndef NDEBUG
 			std::cerr << "Error bits are: "
 				<< "\nfailbit: " << file.fail() 
 				<< "\neofbit: " << file.eof()
 				<< "\nbadbit: " << file.bad() << std::endl;  
-#endif
+			#endif
 			exit(1);
-		} else if(!file.good()) {
+		} else if (!file.good()) {
 			writePermission = true;
 			lines.push_back("");
-		}
-		else {
-			while(file)
+		} else {
+			while (file)
 			{
 				std::string line{""};
 				std::getline(file, line);
-				if(!file) break;
+				if (!file) break;
 				lines.push_back(line);
 			}
 		}

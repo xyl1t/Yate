@@ -1,6 +1,7 @@
 #ifndef EDITOR_HPP
 #define EDITOR_HPP
 
+#include "syntaxHighlighter.hpp"
 #include "fileEditor.hpp"
 #include <string>
 #include <ncurses.h>
@@ -73,9 +74,16 @@ public:
 	inline int getTextEditorHeight() const {
 		return height;
 	}
+	inline int getTabSize() const {
+		return TAB_SIZE;
+	}
+	inline int getScrollX() const {
+		return scrollX;
+	}
 	
 private:
 	FileEditor file;
+	syntaxHighlighter syntaxHG;
 	
 	Caret caret;
 	
