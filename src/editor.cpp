@@ -601,11 +601,11 @@ void Editor::find() {
 			if(input == KEY_LEFT) {
 				if(statusCaret.x > 0) statusCaret.x--;
 			}
-			if(input == 127 && !newWord.empty()) { // BACKSPACE
+			if((input == 127 || input == KEY_BACKSPACE) && !newWord.empty()) { // BACKSPACE
 				newWord.erase(statusCaret.x - 1, 1);
 				if(statusCaret.x > 0) statusCaret.x--;
 			} 
-			if(input == 330 && !newWord.empty()) { // DEL
+			if((input == 330 || input == KEY_DL) && !newWord.empty()) { // DEL
 				newWord.erase(statusCaret.x, 1);
 			}
 			if(input == 27 || input == 3) { // ESCAPE or ctrl+c
