@@ -553,9 +553,11 @@ void Editor::find() {
 			}
 		}
 		
-		scrollX = 0;
-		setCaretLocation(occurrences[occurrenceCount].x + newWord.size(), occurrences[occurrenceCount].y);
-		draw();
+		if (!occurrences.empty()) {
+			scrollX = 0;
+			setCaretLocation(occurrences[occurrenceCount].x + newWord.size(), occurrences[occurrenceCount].y);
+			draw();
+		}
 		
 		for (int j = 0; j < (int)occurrences.size(); j++) {
 			const auto& oc = occurrences[j];
