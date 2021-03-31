@@ -590,6 +590,8 @@ void Editor::find() {
 				//
 				// TODO: set cursor at occurrence
 				//
+				resetStatus();
+				drawStatus();
 				return;
 			}
 			if(input >= 32 && input < 127) {
