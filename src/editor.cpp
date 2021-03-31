@@ -587,9 +587,6 @@ void Editor::find() {
 		while (true) {
 			input = getch();
 			if(input == 10) {
-				//
-				// TODO: set cursor at occurrence
-				//
 				resetStatus();
 				drawStatus();
 				return;
