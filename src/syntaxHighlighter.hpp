@@ -27,14 +27,7 @@ class Editor;
 using featuremap = std::unordered_map<std::string, std::pair<bool, std::string>>;
 using colormap = std::unordered_map<std::string, std::pair<int, int>>;
 using keywordmap = std::vector<std::string>;
-
-#define PAIR_SYNTAX_RED 11
-#define PAIR_SYNTAX_WHITE 12
-#define PAIR_SYNTAX_CYAN 13
-#define PAIR_SYNTAX_MAGENTA 14
-#define PAIR_SYNTAX_YELLOW 15
-#define PAIR_SYNTAX_GREEN 16
-#define PAIR_SYNTAX_BLUE 17
+using colorpair = std::vector<std::pair<int, char>>;
 
 class syntaxHighlighter {
 	public:
@@ -47,28 +40,18 @@ class syntaxHighlighter {
 
 	void registerMaps(std::string extension, keywordmap keywords, featuremap featuremap, colormap colormap);
 
-	inline void simpleAttrPrint(const std::string& symbol, int pair) const {
-		if (!( COLORS > 8 && can_change_color())) {
-				attron(COLOR_PAIR(pair));
-			} else {
-				// Any custom pair can go here, not only defaults:
-				attron(COLOR_PAIR(pair));
+	inline colorpair createColopairFromAttributes(const std::string& symbol, int custom_pair, int pair) {
+		colorpair temp = colorpair();
+		if (can_change_color() && COLORS > 8) {
+			for (int i = 0; i < static_cast<int>(symbol.size()); i++ ) {
+				temp.push_back({custom_pair, symbol[i]});
 			}
-			printw(symbol.c_str());
-			attroff(COLOR_PAIR(pair));
-	}
-
-	inline void attrPrint(const std::string& symbol, const std::string& keyword, const std::string& extension) const {
-		if (!( COLORS > 8 && can_change_color())) {
-			attron(COLOR_PAIR(getBackupColorByKeyword(keyword, extension)));
-			printw(symbol.c_str());
-			attroff(COLOR_PAIR(getBackupColorByKeyword(keyword, extension)));
 		} else {
-			// Any custom pair can go here, not only defaults:
-			attron(COLOR_PAIR(getColorByKeyword(keyword, extension)));
-			printw(symbol.c_str());
-			attroff(COLOR_PAIR(getColorByKeyword(keyword, extension)));
+			for (int i = 0; i < static_cast<int>(symbol.size()); i++ ) {
+				temp.push_back({pair, symbol[i]});
+			}
 		}
+		return temp;
 	}
 
 	// Another stolen piece of code: https://stackoverflow.com/questions/3418231/replace-part-of-a-string-with-another-string
@@ -120,10 +103,10 @@ class syntaxHighlighter {
 		}
 	}
 
-	// Parses a line and prints it out
-	void parseLine(const std::string& line, int lineNr, const std::string& extension, Editor editor);
-	// Parses a symbol and prints it out
-	void parseSymbol(const std::string& symbol, const std::string& extension, Editor editor);
+	// Parses a line and returns a pair
+	std::vector<colorpair> parseLine(const std::string& line, int lineNr, const std::string& extension, Editor editor);
+	// Parses a symbol and returns a pair
+	colorpair parseSymbol(const std::string& symbol, const std::string& extension, Editor editor);
 	// Parses a colormap and stores it
 	colormap parseColormap(std::ifstream colormap);
 

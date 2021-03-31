@@ -59,7 +59,7 @@ public:
 		while(file) {
 			std::string line{""};
 			std::getline(file, line);
-			if(!file) break;
+			if(row == 1 && lines.size() == 1) break;		
 			if(line.length() != lines[row].length()) return true;
 			for(size_t i = 0; i < line.length(); i++) {
 				if(line[i] != lines[row][i]) return true;
@@ -109,6 +109,9 @@ public:
 	inline const Caret& getCarret() const {
 		return this->caret;
 	}
+	inline const std::string& getInfoMessage() const {
+		return infoMessage;
+	}
 	
 	void save();
 	void saveAs(const std::string& path);
@@ -127,6 +130,7 @@ private:
 	std::string extension;
 	std::vector<std::string> lines;
 	bool writePermission;
+	std::string infoMessage;
 	
 	void setPath(const std::string& _path);
 };

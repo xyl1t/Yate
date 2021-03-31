@@ -4,3 +4,6 @@ test/
 *.txt
 !CMakeLists.txt
 Makefile
+GPATH
+GRTAGS
+GTAGS

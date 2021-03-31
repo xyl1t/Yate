@@ -5,8 +5,8 @@
 #include <vector>
 
 syntaxHighlighter::syntaxHighlighter() {
-	this->initMoreColors();
-	this->registerDefaults();
+	initMoreColors();
+	registerDefaults();
 }
 
 void pushString(std::vector<std::pair<size_t, std::string>>& vector, const std::string& line, const std::string& string) {
@@ -19,7 +19,7 @@ std::vector<std::string> syntaxHighlighter::splitBySpecialChars(const std::strin
 	replaceStringInPlace(newExtension, ".", "");
 	// Custom, not necessary ones
 	if (syntaxHighlighter::hasFeaturemap(newExtension)) {
-		for (auto it: this->featuremaps[newExtension]) {
+		for (auto it: featuremaps[newExtension]) {
 			if (it.second.first) {
 				if (it.first == "multiline_comment") {
 					int del = it.second.second.find("\t");
@@ -34,6 +34,8 @@ std::vector<std::string> syntaxHighlighter::splitBySpecialChars(const std::strin
 		}
 	}
 	// Defaults (must-have) ones
+	pushString(positions, line, "\"");
+	pushString(positions, line, "\'");
 	pushString(positions, line, "\t");
 	pushString(positions, line, " ");
 	pushString(positions, line, "(");
@@ -123,148 +125,152 @@ colormap syntaxHighlighter::createColormap(std::vector<std::string> names = {"no
 }
 
 void syntaxHighlighter::registerMaps(std::string extension, std::vector<std::string> keywordmap, featuremap featuremap, colormap colormap) {
-	this->featuremaps[extension] = featuremap;
-	this->colormaps[extension] = colormap;
-	this->keywordmaps[extension] = keywordmap;
+	featuremaps[extension] = featuremap;
+	colormaps[extension] = colormap;
+	keywordmaps[extension] = keywordmap;
 }
 
-void syntaxHighlighter::parseLine(const std::string& line, int lineNr, const std::string& extension, Editor editor) {
+std::vector<colorpair> syntaxHighlighter::parseLine(const std::string& line, int lineNr, const std::string& extension, Editor editor) {
 	resetLineSpecificFlags();
-	printw("%3d ", lineNr + 1);
-	std::vector<std::string> list = splitBySpecialChars(line, extension);
-	for(size_t i = 0; i < list.size(); i++ ) {
-		parseSymbol(list[i], std::string(extension).replace(0, 1, ""), editor);
+	std::vector<colorpair> secondlist{};
+	colorpair temp = colorpair();
+	for (int i; i < static_cast<int>(std::to_string(lineNr + 1).size()); i++ ) {
+		temp.push_back({PAIR_STANDARD, std::to_string(lineNr + 1)[i]});
 	}
+	secondlist.push_back(temp);
+	std::vector<std::string> list = splitBySpecialChars(line, extension);
+	for (size_t i = 0; i < list.size(); i++ ) {
+		secondlist.push_back(parseSymbol(list[i], extension, editor));
+	}
+	return secondlist;
 }
 
-void syntaxHighlighter::parseSymbol(const std::string& symbol, const std::string& extension, Editor editor) {
-	int virtualCol = 0;
-	int min = editor.getTextEditorWidth();
-	if (symbol == "\t") {
-		const int tabSize = editor.getTabSize() - (virtualCol) % editor.getTabSize();
-		for (int original = virtualCol; virtualCol < original + tabSize; virtualCol++) {
-			if (virtualCol >= editor.getScrollX() && virtualCol - editor.getScrollX() < min) {
-				printw("cring");
+colorpair syntaxHighlighter::parseSymbol(const std::string& symbol, const std::string& extension, Editor editor) {
+	if (isPreprocessor) {
+		isPreprocessor = false;
+		afterPreprocessor = true;
+		return createColopairFromAttributes(symbol, getColorByKeyword("preprocessor", extension), getColorByKeyword("preprocessor", extension));
+	} else if (isComment || isMultilineComment) {
+		if (symbol == splitBySpecialChars(featuremaps.at(extension).at("multiline_comment").second, extension)[2]) {
+			isMultilineComment = false;
+		}
+		return createColopairFromAttributes(symbol, PAIR_SYNTAX_GREEN, PAIR_SYNTAX_GREEN);
+	} else if (afterPreprocessor) {
+		return createColopairFromAttributes(symbol, getColorByKeyword("after_preprocessor", extension), getColorByKeyword("preprocessor", extension));
+	} else if (symbol == " " || symbol == "\t") {
+		return createColopairFromAttributes(symbol, PAIR_STANDARD, PAIR_STANDARD);
+	} else if (symbol == "(") {
+		if (parenthesisFirstLayer) {
+			parenthesisSecondLayer = true;
+		} else if (parenthesisSecondLayer) {
+			parenthesisThirdLayer = true;
+		} else {
+			parenthesisFirstLayer = true;
+		}
+		return createColopairFromAttributes(symbol, PAIR_OPEN_CLOSE_SYMBOL, PAIR_OPEN_CLOSE_SYMBOL);
+	} else if (symbol == ")") {
+		if (parenthesisThirdLayer) {
+			parenthesisThirdLayer = false;
+		} else if (parenthesisSecondLayer) {
+			parenthesisSecondLayer = false;
+		} else {
+			parenthesisFirstLayer = false;
+		}
+		return createColopairFromAttributes(symbol, PAIR_OPEN_CLOSE_SYMBOL, PAIR_OPEN_CLOSE_SYMBOL);
+	} else if (symbol == "[") {
+		if (squareFirstLayer) {
+			squareSecondLayer = true;
+		} else if (squareSecondLayer) {
+			squareThirdLayer = true;
+		} else {
+			squareFirstLayer = true;
+		}
+		
+		return createColopairFromAttributes(symbol, PAIR_OPEN_CLOSE_SYMBOL, PAIR_OPEN_CLOSE_SYMBOL);
+	} else if (symbol == "]") {
+		if (squareThirdLayer) {
+			squareThirdLayer = false;
+		} else if (squareSecondLayer) {
+			squareSecondLayer = false;
+		} else {
+			squareFirstLayer = false;
+		}
+			
+		return createColopairFromAttributes(symbol, PAIR_OPEN_CLOSE_SYMBOL, PAIR_OPEN_CLOSE_SYMBOL);
+	} else if (symbol == "{") {
+		if (curlyFirstLayer) {
+			curlySecondLayer = true;
+		} else if (curlySecondLayer) {
+			curlyThirdLayer = true;
+		} else {
+			curlyFirstLayer = true;
+		}
+		return createColopairFromAttributes(symbol, PAIR_OPEN_CLOSE_SYMBOL, PAIR_OPEN_CLOSE_SYMBOL);
+	} else if (symbol == "}") {
+		if (curlyThirdLayer) {
+			curlyThirdLayer = false;
+		} else if (curlySecondLayer) {
+			curlySecondLayer = false;
+		} else {
+			curlyFirstLayer = false;
+		}
+		return createColopairFromAttributes(symbol, PAIR_OPEN_CLOSE_SYMBOL, PAIR_OPEN_CLOSE_SYMBOL);
+	} else if (hasColormap(extension) || hasFeaturemap(extension)) {
+		// For C/C++
+		std::string original = symbol;
+		std::string mutableSymbol = symbol;
+		replaceStringInPlace(mutableSymbol, "*", "");
+		replaceStringInPlace(mutableSymbol, "&", "");
+		if (isKeyword(mutableSymbol, extension)) {
+			colorpair temp = colorpair();
+			colorpair temp2 = createColopairFromAttributes(mutableSymbol, getColorByKeyword("keyword", extension), getColorByKeyword("keyword", extension));
+			replaceStringInPlace(original, mutableSymbol, "");
+			colorpair temp3 = createColopairFromAttributes(original, PAIR_STANDARD, PAIR_STANDARD);
+			for ( int i = 0; i < static_cast<int>(temp2.size()); i++ ) {
+				temp.push_back({temp2[i].first, temp2[i].second});
 			}
+			for ( int i = 0; i < static_cast<int>(temp3.size()); i++ ) {
+				temp.push_back({temp3[i].first, temp3[i].second});
+			}
+			return temp;
+		} else if (isString) {
+			if (symbol == "\"" || symbol == "\'") {
+				isString = false;
+			}
+			return createColopairFromAttributes(symbol, getColorByKeyword("string_color", extension), getColorByKeyword("string_color", extension));
+		} else if (symbol == "\"" || symbol == "\'") {
+			isString = true;
+			return createColopairFromAttributes(symbol, getColorByKeyword("string_color", extension), getColorByKeyword("string_color", extension));
+		} else if (featuremaps.at(extension).at("preprocessor").second != "" && symbol == featuremaps.at(extension).at("preprocessor").second.c_str()) {
+			isPreprocessor = true;
+			return createColopairFromAttributes(symbol, getColorByKeyword("preprocessor", extension), getColorByKeyword("preprocessor", extension));
+		} else if (featuremaps.at(extension).at("statement_end").second != "" && symbol == featuremaps.at(extension).at("statement_end").second.c_str()) {
+			return createColopairFromAttributes(symbol, getColorByKeyword("statement_end", extension), getColorByKeyword("statement_end", extension));
+		} else if (featuremaps.at(extension).at("arrow_pointer").second != "" && symbol == featuremaps.at(extension).at("arrow_pointer").second.c_str()) {
+			return createColopairFromAttributes(symbol, PAIR_SYNTAX_RED, PAIR_SYNTAX_RED);
+		} else if (featuremaps.at(extension).at("comment").second != "" && symbol == featuremaps.at(extension).at("comment").second.c_str()) {
+			isComment = true;
+			return createColopairFromAttributes(symbol, PAIR_SYNTAX_GREEN, PAIR_SYNTAX_GREEN);
+		} else if (featuremaps.at(extension).at("multiline_comment").second != "") {
+			std::vector<std::string> multilineCommentSymbols = splitBySpecialChars(featuremaps.at(extension).at("multiline_comment").second, extension);
+			if (symbol == multilineCommentSymbols[0]) {
+				isMultilineComment = true;
+				return createColopairFromAttributes(symbol, PAIR_SYNTAX_GREEN, PAIR_SYNTAX_GREEN);
+			} else if (symbol == multilineCommentSymbols[2]) {
+				if (isMultilineComment) {
+					isMultilineComment = false;
+					return createColopairFromAttributes(symbol, PAIR_SYNTAX_GREEN, PAIR_SYNTAX_GREEN);
+				} else {
+					return createColopairFromAttributes(symbol, PAIR_STANDARD, PAIR_STANDARD);
+				}
+			} else {
+				return createColopairFromAttributes(symbol, PAIR_STANDARD, PAIR_STANDARD);
+			}
+		} else {
+			return createColopairFromAttributes(symbol, PAIR_STANDARD, PAIR_STANDARD);
 		}
 	} else {
-		if (isPreprocessor) {
-			this->isPreprocessor = false;
-			this->afterPreprocessor = true;
-			attrPrint(symbol, "preprocessor", extension);
-		} else if (isComment || isMultilineComment) {
-			if (symbol == splitBySpecialChars(this->featuremaps.at(extension).at("multiline_comment").second, extension)[2]) {
-				isMultilineComment = false;
-			}
-			simpleAttrPrint(symbol, PAIR_SYNTAX_GREEN);
-		} else if (afterPreprocessor) {
-			attrPrint(symbol, "after_preprocessor", extension); 
-		} else if (symbol == " " || symbol == "\t") {
-			printw(symbol.c_str());
-		} else if (symbol == "(") {
-			if (parenthesisFirstLayer) {
-				parenthesisSecondLayer = true;
-			} else if (parenthesisSecondLayer) {
-				parenthesisThirdLayer = true;
-			} else {
-				parenthesisFirstLayer = true;
-			}
-			simpleAttrPrint(symbol, PAIR_OPEN_CLOSE_SYMBOL);
-		} else if (symbol == ")") {
-			if (parenthesisThirdLayer) {
-				parenthesisThirdLayer = false;
-			} else if (parenthesisSecondLayer) {
-				parenthesisSecondLayer = false;
-			} else {
-				parenthesisFirstLayer = false;
-			}
-			simpleAttrPrint(symbol, PAIR_OPEN_CLOSE_SYMBOL);
-		} else if (symbol == "[") {
-			if (squareFirstLayer) {
-				squareSecondLayer = true;
-			} else if (squareSecondLayer) {
-				squareThirdLayer = true;
-			} else {
-				squareFirstLayer = true;
-			}
-			
-			simpleAttrPrint(symbol, PAIR_OPEN_CLOSE_SYMBOL);
-		} else if (symbol == "]") {
-			if (squareThirdLayer) {
-				squareThirdLayer = false;
-			} else if (squareSecondLayer) {
-				squareSecondLayer = false;
-			} else {
-				squareFirstLayer = false;
-			}
-				
-			simpleAttrPrint(symbol, PAIR_OPEN_CLOSE_SYMBOL);
-		} else if (symbol == "{") {
-			if (curlyFirstLayer) {
-				curlySecondLayer = true;
-			} else if (curlySecondLayer) {
-				curlyThirdLayer = true;
-			} else {
-				curlyFirstLayer = true;
-			}
-			simpleAttrPrint(symbol, PAIR_OPEN_CLOSE_SYMBOL);
-		} else if (symbol == "}") {
-			if (curlyThirdLayer) {
-				curlyThirdLayer = false;
-			} else if (curlySecondLayer) {
-				curlySecondLayer = false;
-			} else {
-				curlyFirstLayer = false;
-			}
-			simpleAttrPrint(symbol, PAIR_OPEN_CLOSE_SYMBOL);
-		} else if (hasColormap(extension) || hasFeaturemap(extension)) {
-			// For C/C++
-			std::string original = symbol;
-			std::string mutableSymbol = symbol;
-			replaceStringInPlace(mutableSymbol, "*", "");
-			replaceStringInPlace(mutableSymbol, "&", "");
-			if (isKeyword(mutableSymbol, extension)) {
-				attrPrint(mutableSymbol, "keyword", extension);
-				replaceStringInPlace(original, mutableSymbol, "");
-				printw(original.c_str());
-			} else if (isString) {
-				if (symbol == "\"" || symbol == "\'") {
-					isString = false;
-				}
-				attrPrint(symbol, "string_color", extension);
-			} else if (symbol == "\"" || symbol == "\'") {
-				isString = true;
-				attrPrint(symbol, "string_color", extension);
-			} else if (this->featuremaps.at(extension).at("preprocessor").second != "" && symbol == this->featuremaps.at(extension).at("preprocessor").second.c_str()) {
-				this->isPreprocessor = true;
-				attrPrint(symbol, "preprocessor", extension);
-				
-			} else if (this->featuremaps.at(extension).at("statement_end").second != "" && symbol == this->featuremaps.at(extension).at("statement_end").second.c_str()) {
-				attrPrint(symbol, "statement_end", extension);
-				
-			} else if (this->featuremaps.at(extension).at("arrow_pointer").second != "" && symbol == this->featuremaps.at(extension).at("arrow_pointer").second.c_str()) {
-				simpleAttrPrint(symbol, PAIR_SYNTAX_RED);
-				
-			} else if (this->featuremaps.at(extension).at("comment").second != "" && symbol == this->featuremaps.at(extension).at("comment").second.c_str()) {
-				isComment = true;
-				simpleAttrPrint(symbol, PAIR_SYNTAX_GREEN);
-			} else if (this->featuremaps.at(extension).at("multiline_comment").second != "") {
-				std::vector<std::string> multilineCommentSymbols = splitBySpecialChars(this->featuremaps.at(extension).at("multiline_comment").second, extension);
-				if (symbol == multilineCommentSymbols[0]) {
-					isMultilineComment = true;
-					simpleAttrPrint(symbol, PAIR_SYNTAX_GREEN);
-				} else if (symbol == multilineCommentSymbols[2]) {
-					if (isMultilineComment) {
-						isMultilineComment = false;
-						simpleAttrPrint(symbol, PAIR_SYNTAX_GREEN);
-					} else {
-						printw(symbol.c_str());
-					}
-				} else {
-					printw(symbol.c_str());
-				}
-			}
-		}
+		return createColopairFromAttributes(symbol, PAIR_STANDARD, PAIR_STANDARD);
 	}
 }
 

@@ -16,8 +16,6 @@
 //     <word>: <color>
 // * Options
 //   --path-to-profile    specify the path to .yateprofile
-// * Check for filenames such as %s, %c etc
-// * Simple searching
 // * Check for permissions on windows
 
 int main(int argc, char** argv) {
@@ -44,6 +42,7 @@ int main(int argc, char** argv) {
 	raw();
 	refresh();
 	noecho();
+	set_escdelay(0);
 	keypad(stdscr, true);
 	
 	Editor editor { path, tabSize };
