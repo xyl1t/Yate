@@ -1,5 +1,6 @@
 #if defined(YATE_WINDOWS)
 #include "pdcurses.h"
+#include "Windows.h"
 #else
 #include <ncurses.h>
 #endif
@@ -10,7 +11,9 @@
 
 // Yate: Yet Another Text Editor
 // Originally created by Xylit (@Xyl1t)
-// Many thanks to @Niki4Tap and @EntireTwix for contributing!
+// Contributors: @Niki4Tap for revoking the project and working on it
+//  @EntireTwix for making small, but important changes to CMakeLists.txt
+//  @DCubix (Diego) for getting yate run for the first time on Windows.
 
 // TODO:
 // * Word highlighting 
@@ -26,6 +29,10 @@
 // * Check for permissions on windows
 
 int main(int argc, char** argv) {
+
+#if defined(YATE_WINDOWS) && NDEBUG
+	FreeConsole();
+#endif
 
 	int tabSize = 4;
 	std::string path {};

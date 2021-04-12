@@ -108,14 +108,16 @@ int Editor::getInput() {
 		{
 #ifdef YATE_WINDOWS
 			case 60499:
-#endif
+#else
 			case KEY_PPAGE:
+#endif
 			setCaretLocation(caret.x, caret.y - (getTextEditorHeight() - 1));
-				break;
+				break;				
 #ifdef YATE_WINDOWS
 			case 60498:
-#endif
+#else
 			case KEY_NPAGE:
+#endif
 			setCaretLocation(caret.x, caret.y + (getTextEditorHeight() - 1));
 				break;
 			case 11:
@@ -126,40 +128,46 @@ int Editor::getInput() {
 				break;
 #ifdef YATE_WINDOWS			
 			case 60419:
-#endif
+#else
 			case KEY_UP:
+#endif
 				moveUp();
 				break;
 #ifdef YATE_WINDOWS			
 			case 60418:
-#endif
+#else
 			case KEY_DOWN:
+#endif
 				moveDown();
 				break;
 #ifdef YATE_WINDOWS			
 			case 60420:
-#endif
+#else
 			case KEY_LEFT:
+#endif
 				moveLeft();
 				break;
 #ifdef YATE_WINDOWS			
 			case 60421:
-#endif
+#else
 			case KEY_RIGHT:
+#endif
 				moveRight();
 				break;		
 #ifdef YATE_WINDOWS
 			case 60518:
-#endif
+#else
 			case 5:
+#endif
 			case KEY_END:
 				moveEndOfLine(); 
 				break;
 #ifdef YATE_WINDOWS
 			case 60422:
-#endif
+#else
 			case KEY_HOME:
 			case 1:
+#endif
 				moveBeginningOfLine();
 				break;
 			case 25: // CTRL+Y (for qwertz layout)
@@ -172,20 +180,25 @@ int Editor::getInput() {
 			case KEY_ENTER:
 #ifdef YATE_WINDOWS
 			case 13:
-#endif
+#else
 			case 10:
+#endif
 				newLine();
 				break;
 #ifdef YATE_WINDOWS
 			case 8:
-#endif
+#else
 			case KEY_BACKSPACE:
 			case 127:
+#endif
 				deleteCharL();
 				break;
-			// NOTE: let's do both KEY_DL and KEY_DC to be safe (famous last words)
+#ifdef YATE_WINDOWS
+			case 60490:
+#else
 			case 330:
 			case KEY_DL:
+#endif
 				deleteCharR();
 				break;
 			case 19:
