@@ -60,14 +60,36 @@ int main(int argc, char** argv) {
 			argVal >> terminalHeight;
 			i++;
 		} else if (arg.rfind("-h", 0) == 0) {
-			
-			std::cout << "Usage: yate [file] [options]\n";
-			std::cout << "All possible options are:\n";
-			std::cout << "  -t    tab size\n";
-			std::cout << "  -r    amount of rows in terminal (only for windows)\n";
-			std::cout << "  -c    amount of columns in terminal (only for windows)\n";
-			std::cout << "  -h    shows this help screen\n";
-			
+			std::cout << R"STR(Usage: yate [file] [options]
+All possible options are:
+  -t    tab size
+  -r    amount of rows in terminal (only for windows)
+  -c    amount of columns in terminal (only for windows)
+  -h    shows this help screen
+
+Yate key bindings:
+Main: 
+  ctrl+s: save file
+  ctrl+c: exit the program
+Movement:
+  arrow keys: move one letter up/down/left/right
+  page-up:    move caret up by screen size
+  page-down:  move caret down by screen size
+  home:       put caret at end the beginning of the line
+  end:        put caret at the end of the line
+  ctrl+x:     put caret to beginning of word
+  ctrl+z:     put caret to end of word
+  ctrl+k:     scroll screen left
+  ctrl+l:     scroll screen right
+Misc: 
+  ctrl+f: find word
+    up-arrow: go to previous match
+    down-arrow: go to next match
+    enter: confirm caret location
+    esc, ctrl+c: cancel
+  ctrl+u: undo
+  ctrl+d: redo
+)STR";	
 			return 0;
 		} else {
 			argStream >> path;

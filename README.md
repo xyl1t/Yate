@@ -15,7 +15,7 @@ Besides being able to edit text with yate, it also has following features
 * saving a file by pressing `ctrl+s`
 * movement shortcuts  
   Besides the usual arrow keys, keys such as `Page up`, `Page down`, `Home` and `End` also work as expected, but on top of that, you can also press `ctrl+x` to jump the the next word and `ctrl+z` to jump to the previous. If you don't want to move your cursor but just want to scroll right or left, you can do that with `ctrl+k` and `ctrl+l`.
-* Warning the user when attempting to close a modified file
+* Warning the user on an attempt to close a modified file
 # Building
 Dependencies: 
 * A C++17 compatible compiler
@@ -29,10 +29,9 @@ make
 ./yate <file>
 ```
 In order to close yate, press `ctrl+c`
-
 # Options
 ```
-./yate [file][-w][-h][-t]
+./yate [file][-t][-r][-c][-h]
 ```
 # License
 This project is licensed under the [MIT License](https://github.com/xyl1t/Yate/blob/master/LICENSE)
