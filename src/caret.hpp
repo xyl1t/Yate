@@ -4,7 +4,7 @@
 struct Caret {
 	int x;
 	int y;
-	int savedX;
+	int savedX = 0;
 };
 
 #endif

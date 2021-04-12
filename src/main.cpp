@@ -1,3 +1,4 @@
+// TODO: Redefine key macros 
 #if defined(YATE_WINDOWS)
 #include "pdcurses.h"
 #include "Windows.h"
@@ -8,6 +9,7 @@
 #include "fileEditor.hpp"
 #include "editor.hpp"
 #include <iostream>
+
 
 // Yate: Yet Another Text Editor
 // Originally created by Xylit (@Xyl1t)
@@ -24,8 +26,6 @@
 //     <word>: <color>
 // * Options
 //   --path-to-profile    specify the path to .yateprofile
-// * Check for filenames such as %s, %c etc
-// * Simple searching
 // * Check for permissions on windows
 
 int main(int argc, char** argv) {
@@ -34,6 +34,8 @@ int main(int argc, char** argv) {
 	FreeConsole();
 #endif
 
+	int terminalWidth = 0;
+	int terminalHeight = 0;
 	int tabSize = 4;
 	std::string path {};
 	for(int i = 1; i < argc; i++) {
@@ -42,21 +44,38 @@ int main(int argc, char** argv) {
 		if(arg.rfind("-t", 0) == 0) {
 			char junk{};
 			argStream >> junk >> junk >> junk;
-			argStream >> tabSize;
 			std::stringstream argVal {argv[i + 1]};
 			argVal >> tabSize;
+			i++;
+		} else if (arg.rfind("-w", 0) == 0) {
+			char junk{};
+			argStream >> junk >> junk >> junk;
+			std::stringstream argVal {argv[i + 1]};
+			argVal >> terminalWidth;
+			i++;
+		} else if (arg.rfind("-h", 0) == 0) {
+			char junk{};
+			argStream >> junk >> junk >> junk;
+			std::stringstream argVal {argv[i + 1]};
+			argVal >> terminalHeight;
 			i++;
 		} else {
 			argStream >> path;
 		}
 	}
-	
 	initscr();
 	start_color();
 	raw();
 	refresh();
 	noecho();
+	resize_term(terminalHeight, terminalWidth);
 	keypad(stdscr, true);
+#if defined(YATE_WINDOWS)
+	SetWindowTextA(GetActiveWindow(),"Yate"); // set window title
+#else 
+	set_escdelay(0);
+#endif
+	
 	
 	Editor editor { path, tabSize };
 	
@@ -66,7 +85,6 @@ int main(int argc, char** argv) {
 	}
 	
 	endwin();
-	exit(0);
 	
 	return 0;
 }

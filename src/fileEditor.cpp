@@ -24,19 +24,20 @@ FileEditor::FileEditor(const std::string& path)
 	filename {},
 	extension {},
 	lines{},
-	writePermission{true} {
-	if (path != "") {
+	writePermission{true},
+	infoMessage{} {
+	
+	if (path != "" && fs::is_regular_file(path)) {
 		setPath(path);
-
-		fs::perms active_perms = fs::status(path).permissions();
 		
+		fs::perms active_perms = fs::status(path).permissions();
 #if defined(__linux__) || defined(__APPLE__)
 		struct stat file_stat;
 		stat(path.c_str(), &file_stat);
 	
 		uid_t current_uid = getuid();
 		gid_t current_gid = getgid();
-
+		
 		if (!(((active_perms & fs::perms::owner_read)  != fs::perms::none && file_stat.st_uid == current_uid) ||
 			((active_perms & fs::perms::group_read)  != fs::perms::none && file_stat.st_gid == current_gid) ||
 			((active_perms & fs::perms::others_read) != fs::perms::none))) {
@@ -76,15 +77,17 @@ FileEditor::FileEditor(const std::string& path)
 			lines.push_back("");
 		}
 		else {
-			while(file)
-			{
+			while(file) {
 				std::string line{""};
 				std::getline(file, line);
-				if(!file) break;
 				lines.push_back(line);
 			}
 		}
 	} else {
+		if(!path.empty() && !fs::is_regular_file(path)) {
+			infoMessage = " Path is not a file ";
+		}
+		this->path = "";
 		writePermission = true;
 		lines.push_back("");
 	}
@@ -137,16 +140,19 @@ void FileEditor::del(bool right) {
 void FileEditor::save() {
 	if (path.empty()) throw std::logic_error("Cannot save file with empty path, use saveAs() instead.");
 	std::ofstream file { path };
-	for(const auto& line : lines) {
-		file << line << "\n";
+	for (int i = 0; i < (int)lines.size() - 1; i++) {
+		file << lines[i] << "\n";
 	}
+	file << lines[lines.size() - 1];
 }
 void FileEditor::saveAs(const std::string& path) {
 	setPath(path);
+	if (path.empty()) throw std::logic_error("Cannot save file with empty path, use saveAs() instead.");
 	std::ofstream file { path };
-	for(const auto& line : lines) {
-		file << line << "\n";
+	for (int i = 0; i < (int)lines.size() - 1; i++) {
+		file << lines[i] << "\n";
 	}
+	file << lines[lines.size() - 1];
 }
 
 void FileEditor::setPath(const std::string& _path) {
@@ -158,7 +164,11 @@ void FileEditor::setPath(const std::string& _path) {
 	}
 	std::reverse(fullFilename.begin(), fullFilename.end());
 	filename = fullFilename.substr(0, fullFilename.find('.'));
-	extension = fullFilename.substr(filename.size() + 1);
+	if (fullFilename.find('.') != std::string::npos) {
+		extension = fullFilename.substr(filename.size() + 1);
+	} else {
+		extension = "";
+	}
 }
 
 void FileEditor::close() {
