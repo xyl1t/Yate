@@ -47,18 +47,28 @@ int main(int argc, char** argv) {
 			std::stringstream argVal {argv[i + 1]};
 			argVal >> tabSize;
 			i++;
-		} else if (arg.rfind("-w", 0) == 0) {
+		} else if (arg.rfind("-r", 0) == 0) {
 			char junk{};
 			argStream >> junk >> junk >> junk;
 			std::stringstream argVal {argv[i + 1]};
 			argVal >> terminalWidth;
 			i++;
-		} else if (arg.rfind("-h", 0) == 0) {
+		} else if (arg.rfind("-c", 0) == 0) {
 			char junk{};
 			argStream >> junk >> junk >> junk;
 			std::stringstream argVal {argv[i + 1]};
 			argVal >> terminalHeight;
 			i++;
+		} else if (arg.rfind("-h", 0) == 0) {
+			
+			std::cout << "Usage: yate [file] [options]\n";
+			std::cout << "All possible options are:\n";
+			std::cout << "  -t    tab size\n";
+			std::cout << "  -r    amount of rows in terminal (only for windows)\n";
+			std::cout << "  -c    amount of columns in terminal (only for windows)\n";
+			std::cout << "  -h    shows this help screen\n";
+			
+			return 0;
 		} else {
 			argStream >> path;
 		}

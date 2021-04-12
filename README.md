@@ -19,15 +19,20 @@ Besides being able to edit text with yate, it also has following features
 # Building
 Dependencies: 
 * A C++17 compatible compiler
-* The ncurses library
+* The ncurses library (or PDCurses if you are on Windows)
 * [Cmake](https://cmake.org/)
 ```bash
 mkdir build
 cd build
-cmake ..
+cmake -G "Unix Makefiles" ..
 make
 ./yate <file>
 ```
 In order to close yate, press `ctrl+c`
+
+# Options
+```
+./yate [file][-w][-h][-t]
+```
 # License
 This project is licensed under the [MIT License](https://github.com/xyl1t/Yate/blob/master/LICENSE)
