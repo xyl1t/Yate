@@ -4,7 +4,11 @@ cmake_minimum_required(VERSION 3.16)
 project("yate") 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_GENERATOR "Unix Makefiles")
+
+if(NOT CMAKE_GENERATOR)
+	set(CMAKE_GENERATOR "Unix Makefiles")
+endif()
+
 if (WIN32) 
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -static")
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++ -static")
