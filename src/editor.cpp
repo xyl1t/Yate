@@ -695,6 +695,8 @@ void Editor::resetStatus() {
 			s += '|';
 		} else if(act.action == '\n') {
 			s += "\\n";
+		} else if(act.action == '\t') {
+			s += "\\t";
 		} else if(act.actionType == ActionType::DeletionL || act.actionType == ActionType::DeletionR) {
 			s += "\\d";
 		} else {
