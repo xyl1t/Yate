@@ -163,6 +163,8 @@ private:
 	
 	int currentAction{};
 	int prevAction{};
+
+	bool autoIndent{true};
 	
 	std::string getInputInStatus(std::string statusText, int colorPair, const std::string& preset = "");
 	
@@ -226,6 +228,34 @@ private:
 			}
 		}
 		return size;
+	}
+	inline int getCharsCountBeforeFirstCharacter() {
+		int fileX = getFileCaretColumn();
+		const std::string& line = file.getLine(caret.y);
+		int len = 0;
+		for (int col = 0; col < fileX; col++) {
+			if (line[col] == ' ') {
+				len++;
+			} else if (line[col] == '\t') {
+				len += TAB_SIZE - (len) % TAB_SIZE;
+			} else {
+				return len;
+			}
+		}
+		return len;
+	}
+	inline std::vector<char> getCharsBeforeFirstCharacter() {
+		int fileX = getFileCaretColumn();
+		const std::string& line = file.getLine(caret.y);
+		std::vector<char> chars;
+		for (int col = 0; col < fileX; col++) {
+			if (line[col] == ' ' || line[col] == '\t') {
+				chars.push_back(line[col]);
+			} else {
+				return chars;
+			}
+		}
+		return chars;
 	}
 };
 

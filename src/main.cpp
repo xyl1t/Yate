@@ -6,6 +6,7 @@
 #include <ncurses.h>
 #endif
 
+#include <fstream>
 #include "fileEditor.hpp"
 #include "editor.hpp"
 #include <iostream>
@@ -30,6 +31,11 @@
 
 int main(int argc, char** argv) {
 
+#ifndef NDEBUG
+	std::ofstream ofs("log.txt");
+	std::clog.rdbuf(ofs.rdbuf());
+#endif
+
 #if defined(YATE_WINDOWS) && NDEBUG
 	FreeConsole();
 #endif
@@ -41,25 +47,27 @@ int main(int argc, char** argv) {
 	for(int i = 1; i < argc; i++) {
 		std::string arg = argv[i];
 		std::stringstream argStream {argv[i]};
-		if(arg.rfind("-t", 0) == 0) {
-			char junk{};
-			argStream >> junk >> junk >> junk;
+		auto match = [&](std::string_view s) { return (arg.rfind(s.data(), 0) == 0); };
+		
+		if(match("-t") || match("--tab-size")) {
+			// char junk{};
+			// argStream >> junk >> junk >> junk;
 			std::stringstream argVal {argv[i + 1]};
 			argVal >> tabSize;
 			i++;
-		} else if (arg.rfind("-r", 0) == 0) {
-			char junk{};
-			argStream >> junk >> junk >> junk;
+		} else if (match("-r") || match("--rows")) {
+			// char junk{};
+			// argStream >> junk >> junk >> junk;
 			std::stringstream argVal {argv[i + 1]};
 			argVal >> terminalWidth;
 			i++;
-		} else if (arg.rfind("-c", 0) == 0) {
-			char junk{};
-			argStream >> junk >> junk >> junk;
+		} else if (match("-c") || match("--cols")) {
+			// char junk{};
+			// argStream >> junk >> junk >> junk;
 			std::stringstream argVal {argv[i + 1]};
 			argVal >> terminalHeight;
 			i++;
-		} else if (arg.rfind("-h", 0) == 0) {
+		} else if (match("-h") || match("--help")) {
 			std::cout << R"STR(Usage: yate [file] [options]
 All possible options are:
   -t    tab size
