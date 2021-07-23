@@ -1,6 +1,7 @@
 #ifndef FILE_EDITOR_HPP
 #define FILE_EDITOR_HPP
 
+#include <iostream>
 #include <sstream>
 #include <fstream>
 #include <string>
@@ -54,7 +55,31 @@ public:
 			else return false;
 		} 
 		
-		std::fstream file {path};
+		std::ifstream file {path};
+		unsigned int x{};
+		unsigned int y{};
+		while (file) {
+			
+			int ch = file.get();
+			if (ch == -1) { y++; break; }
+			
+			if (ch == '\n' || ch == 10) {
+				y++;
+				x = 0;
+			} else if (lines[y][x] != (char)ch) {
+				return true;
+			} else {
+				x++;
+			}
+			if (y > lines.size() || x > lines[y].size()) {
+				return true;
+			}
+		}
+
+		if (lines.size() > y) return true;
+		
+		return false;
+#if 0
 		size_t row = 0;
 		while(file) {
 			std::string line{""};
@@ -70,6 +95,7 @@ public:
 		if(row != lines.size()) return true;
 
 		return false;
+#endif
 	}
 	
 	inline const std::string& getLine() const {

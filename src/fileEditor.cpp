@@ -77,10 +77,16 @@ FileEditor::FileEditor(const std::string& path)
 			lines.push_back("");
 		}
 		else {
-			while(file) {
-				std::string line{""};
-				std::getline(file, line);
-				lines.push_back(line);
+			lines.push_back("");
+			while (file) {
+				int ch = file.get();
+				if (ch == -1) break;
+				
+				if (ch == '\n' || ch == 10) {
+					lines.push_back("");
+				} else {
+					lines[lines.size()-1].push_back(ch);
+				}
 			}
 		}
 	} else {
@@ -144,6 +150,8 @@ void FileEditor::save() {
 		file << lines[i] << "\n";
 	}
 	file << lines[lines.size() - 1];
+	// if (lines[lines.size() - 1].size() != 0)
+	// 	file << '\n';
 }
 void FileEditor::saveAs(const std::string& path) {
 	setPath(path);
