@@ -299,6 +299,7 @@ void Editor::newLine() {
 		auto chars = getCharsBeforeFirstCharacter();
 		file.newLine();
 		moveDown();
+		setCaretLocation(0, caret.y);
 		for (auto ch : chars) {
 			put(ch);
 		}
