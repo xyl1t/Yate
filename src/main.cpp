@@ -40,32 +40,26 @@ int main(int argc, char** argv) {
 	FreeConsole();
 #endif
 
+	std::string path {};
 	int terminalWidth = 0;
 	int terminalHeight = 0;
 	int tabSize = 4;
-	std::string path {};
+	bool autoIndent = true;
 	for(int i = 1; i < argc; i++) {
 		std::string arg = argv[i];
 		std::stringstream argStream {argv[i]};
 		auto match = [&](std::string_view s) { return (arg.rfind(s.data(), 0) == 0); };
 		
 		if(match("-t") || match("--tab-size")) {
-			// char junk{};
-			// argStream >> junk >> junk >> junk;
 			std::stringstream argVal {argv[i + 1]};
 			argVal >> tabSize;
 			i++;
 		} else if (match("-r") || match("--rows")) {
-			// char junk{};
-			// argStream >> junk >> junk >> junk;
 			std::stringstream argVal {argv[i + 1]};
 			argVal >> terminalWidth;
 			i++;
-		} else if (match("-c") || match("--cols")) {
-			// char junk{};
-			// argStream >> junk >> junk >> junk;
-			std::stringstream argVal {argv[i + 1]};
-			argVal >> terminalHeight;
+		} else if (match("-a") || match("--disable-auto-indent")) {
+			autoIndent = false;
 			i++;
 		} else if (match("-h") || match("--help")) {
 			std::cout << R"STR(Usage: yate [file] [options]
@@ -117,7 +111,7 @@ Misc:
 #endif
 	
 	
-	Editor editor { path, tabSize };
+	Editor editor { path, tabSize, autoIndent };
 	
 	while(editor.isAlive()) {
 		editor.draw();

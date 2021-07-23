@@ -14,8 +14,8 @@
 #include "pdcurses.h"
 #undef  KEY_BACKSPACE
 #define KEY_BACKSPACE 8
-
 #undef  KEY_DL
+
 #define KEY_DL 60490
 
 #undef  KEY_UP
@@ -43,7 +43,7 @@
 
 class Editor {
 public:
-	Editor(const std::string& filePath, int tabSize = 4);
+	Editor(const std::string& filePath, int tabSize = 4, bool autoIndent = true);
 	
 	bool close();
 	
@@ -142,6 +142,10 @@ public:
 			scrollDown((caret.y) - (getTextEditorHeight() - 1 + scrollY));
 		}
 	}
+	inline bool IsAutoIndentEnabled() { return autoIndent; }
+	inline void EnableAutoIndent() { autoIndent = true; }
+	inline void DisableAutoIndent() { autoIndent = false; }
+	
 	
 private:
 	bool alive;

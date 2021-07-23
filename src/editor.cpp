@@ -9,7 +9,7 @@
 #define PAIR_INFO 4
 
 
-Editor::Editor(const std::string& filePath, int tabSize) 
+Editor::Editor(const std::string& filePath, int tabSize, bool autoIndent) 
     : alive(true),
 	file(filePath), 
 	TAB_SIZE(tabSize),
@@ -18,7 +18,8 @@ Editor::Editor(const std::string& filePath, int tabSize)
 	scrollY(0),
 	customStatusText(false),
 	undo{},
-	redo{} 
+	redo{},
+	autoIndent(autoIndent)
 {
 	initColorPairs();
 	resetStatus();
@@ -294,9 +295,18 @@ void Editor::put(int ch, bool record) {
 	}
 }
 void Editor::newLine() {
-	file.newLine();
-    moveDown();
-	setCaretLocation(0, caret.y);
+	if (IsAutoIndentEnabled()) {
+		auto chars = getCharsBeforeFirstCharacter();
+		file.newLine();
+		moveDown();
+		for (auto ch : chars) {
+			put(ch);
+		}
+	} else {
+		file.newLine();
+		moveDown();
+		setCaretLocation(0, caret.y);
+	}
 }
 void Editor::deleteCharL(bool record) {
 	try {
