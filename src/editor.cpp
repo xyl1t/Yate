@@ -107,7 +107,18 @@ int Editor::getInput() {
 	auto actionCount = undo.size() + redo.size();
 	
 	if(Action::isInput(currentAction)) {
-		put(currentAction);
+		if (Action::isNewLine(currentAction) && IsAutoIndentEnabled()) {
+			auto chars = getCharsBeforeFirstCharacter(); 
+			put(currentAction);
+			
+			setCaretLocation(0, caret.y);
+			for (auto currentAction : chars) {
+				put(currentAction);
+			}
+		} else {
+			put(currentAction);
+		}
+
 		if(!file.hasWritePermission()) {
 			setStatus(" Warning: File \'" + file.getFullFilename() + "\' doesn't have write permissions. ", PAIR_WARNING);
 		}
@@ -258,7 +269,7 @@ void Editor::put(int ch, bool record) {
 	ActionType actType = ActionType::Input;
 	int beforeX = caret.x;
 	int beforeY = caret.y;
-
+	
 	if(ch != KEY_ENTER && ch != 10) {
 		file.put((char)ch);
 		moveRight();
@@ -268,46 +279,32 @@ void Editor::put(int ch, bool record) {
 	}
 	
 	if (record) {
-		if(!undo.empty() && undo.top().actionType != Actions::separator.actionType && undo.top().actionType != ActionType::Input) {
+		if(!undo.empty() && undo.top().actionType != Actions::separator.actionType && undo.top().actionType != ActionType::Input && !IsAutoIndentEnabled()) {
 			undo.emplace(Actions::separator);
 		} 
 		
-		undo.emplace((Action){
-			Action::isNewLine(currentAction) ? ActionType::NewLine : ActionType::Input,
-			currentAction, caret.x, caret.y,
+		undo.emplace((Action) {
+			actType,
+			ch, caret.x, caret.y,
 			[this, x = caret.x, y = caret.y] {
 				setCaretLocation(x, y);
 				deleteCharL(false);
 			},
-			[this, act = currentAction, x = beforeX, y = beforeY] {
+			[this, act = ch, x = beforeX, y = beforeY] {
 				setCaretLocation(x, y);
 				put(static_cast<char>(act), false);
 			}
 		});
 
-		if(ch == ' ') {
-			undo.emplace(Actions::separator);
-		}
-		
-		if(ch == '\n') {
+		if((ch == ' ' || ch == '\n') && !IsAutoIndentEnabled()) {
 			undo.emplace(Actions::separator);
 		}
 	}
 }
 void Editor::newLine() {
-	if (IsAutoIndentEnabled()) {
-		auto chars = getCharsBeforeFirstCharacter();
-		file.newLine();
-		moveDown();
-		setCaretLocation(0, caret.y);
-		for (auto ch : chars) {
-			put(ch);
-		}
-	} else {
-		file.newLine();
-		moveDown();
-		setCaretLocation(0, caret.y);
-	}
+	file.newLine();
+	moveDown();
+	setCaretLocation(0, caret.y);
 }
 void Editor::deleteCharL(bool record) {
 	try {
@@ -686,7 +683,9 @@ void Editor::resetStatus() {
 	s = buffer;
 	
 	std::stack<Action> u = undo;
+	std::stack<Action> r = redo;
 	
+	s += "[";
 	while (!u.empty()) {
 		Action act = u.top();
 		if(act.action == ' ') {
@@ -704,6 +703,26 @@ void Editor::resetStatus() {
 		}
 		u.pop();
 	}
+	s += "]";
+	s += " [";
+	while (!r.empty()) {
+		Action act = r.top();
+		if(act.action == ' ') {
+			s += '_';
+		} else if(act.action == 0) {
+			s += '|';
+		} else if(act.action == '\n') {
+			s += "\\n";
+		} else if(act.action == '\t') {
+			s += "\\t";
+		} else if(act.actionType == ActionType::DeletionL || act.actionType == ActionType::DeletionR) {
+			s += "\\d";
+		} else {
+			s += act.action;
+		}
+		r.pop();
+	}
+	s += "]";
 #else
 	sprintf(
 		buffer, 
