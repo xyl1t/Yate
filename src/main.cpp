@@ -66,10 +66,16 @@ int main(int argc, char** argv) {
 		} else if (match("-h") || match("--help")) {
 			std::cout << R"STR(Usage: yate [file] [options]
 All possible options are:
-  -t    tab size
-  -r    amount of rows in terminal (only for windows)
-  -c    amount of columns in terminal (only for windows)
-  -h    shows this help screen
+  -t <size>, --tab-size <size>
+	sets the tab size to the specified size
+  -a, --disable-auto-indent
+	disables auto indentation
+  -r <amount>, --rows <amount>
+	amount of rows in terminal (only for windows)
+  -c <amount>, --cols <amount>
+	amount of columns in terminal (only for windows)
+  -h, --help 
+	shows this help screen
 
 Yate key bindings:
 Main: 
