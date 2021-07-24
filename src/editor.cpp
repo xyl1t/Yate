@@ -103,10 +103,14 @@ void Editor::drawStatus() {
 int Editor::getInput() {
 	prevAction = currentAction;
 	currentAction = getch();
+	static int accumulation = 0;
 	std::clog << currentAction << " (" << currentAction << ")" << std::endl;
-	if (currentAction == -1) { // FIXME: crashes when resizing terminal (cmd +, cmd -)
-		close(true);
-		return currentAction;
+	if (currentAction == -1) { // HACK: when does -1 actually come?
+		accumulation++;
+		if (accumulation > 1000) {
+			close(true);
+			return currentAction;
+		}
 	}
 	
 	auto actionCount = undo.size() + redo.size();

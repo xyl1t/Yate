@@ -125,13 +125,12 @@ Misc:
 	while(editor.isAlive()) {
 		editor.draw();
 		action = editor.getInput();
-		if (action == -1) break;
 	}
 	
 	endwin();
 	
 	if (action == -1) {
-		std::cout << "Error reading input (stdin was -1)\nNOTE: piping doesn't work\n";
+		std::cout << "Error reading input (stdin was -1 for a very long time)\nNOTE: piping doesn't work\n";
 	}	
 	
 	return 0;
