@@ -103,7 +103,8 @@ void Editor::drawStatus() {
 int Editor::getInput() {
 	prevAction = currentAction;
 	currentAction = getch();
-	if (currentAction == -1) {
+	std::clog << currentAction << " (" << currentAction << ")" << std::endl;
+	if (currentAction == -1) { // FIXME: crashes when resizing terminal (cmd +, cmd -)
 		close(true);
 		return currentAction;
 	}
@@ -210,7 +211,10 @@ int Editor::getInput() {
 				break;
 			case KEY_HOME:
 			case 1:
-				moveBeginningOfLine();
+				if(caret.x != getCharsCountBeforeFirstCharacter(-1) || caret.x == 0)
+					moveToFirstCharacter();
+				else 
+					moveBeginningOfLine();
 				if(!undo.empty() && undo.top().actionType != Actions::separator.actionType)
 					undo.push(Actions::separator);
 				break;
@@ -468,6 +472,9 @@ void Editor::moveLeft() {
 
 void Editor::moveBeginningOfLine() {
 	setCaretLocation(0, caret.y);
+}
+void Editor::moveToFirstCharacter() {
+	setCaretLocation(getCharsCountBeforeFirstCharacter(-1), caret.y);
 }
 void Editor::moveEndOfLine() {
 	setCaretLocation(getVirtualLineLength(), caret.y);

@@ -81,6 +81,7 @@ public:
 	void moveLeft();
 	void moveRight();
 	void moveBeginningOfLine();
+	void moveToFirstCharacter();
 	void moveEndOfLine();
     void moveBeginningOfText();
     void moveEndOfText();
@@ -234,8 +235,13 @@ private:
 		return size;
 	}
 	inline int getCharsCountBeforeFirstCharacter() {
-		int fileX = getFileCaretColumn();
+		return getCharsCountBeforeFirstCharacter(caret.x);
+	}
+	inline int getCharsCountBeforeFirstCharacter(int x) {
 		const std::string& line = file.getLine(caret.y);
+		int fileX;
+		if (x > -1) fileX = getFileCaretColumn(x);
+		else fileX = line.size();
 		int len = 0;
 		for (int col = 0; col < fileX; col++) {
 			if (line[col] == ' ') {
