@@ -32,9 +32,9 @@ Editor::Editor(const std::string& filePath, int tabSize, bool autoIndent)
 	customStatusText = false;
 }
 
-bool Editor::close() {
+bool Editor::close(bool force) {
 	// NOTE: Maybe instead of exiting without saving, ask the user if he wants to save
-	if(file.hasFileContentChanged()) {
+	if(file.hasFileContentChanged() && !force) {
 		std::string status {" Exit without saving? [Y/N] "};
 		setStatus(status, PAIR_WARNING);
 		draw();
@@ -103,6 +103,10 @@ void Editor::drawStatus() {
 int Editor::getInput() {
 	prevAction = currentAction;
 	currentAction = getch();
+	if (currentAction == -1) {
+		close(true);
+		return currentAction;
+	}
 	
 	auto actionCount = undo.size() + redo.size();
 	

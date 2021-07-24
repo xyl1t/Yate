@@ -45,7 +45,7 @@ class Editor {
 public:
 	Editor(const std::string& filePath, int tabSize = 4, bool autoIndent = true);
 	
-	bool close();
+	bool close(bool force = false);
 	
 	void draw();
 	void drawStatus();

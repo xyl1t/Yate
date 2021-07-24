@@ -34,12 +34,13 @@ int main(int argc, char** argv) {
 #ifndef NDEBUG
 	std::ofstream ofs("log.txt");
 	std::clog.rdbuf(ofs.rdbuf());
+	std::clog << "Date: " << __DATE__ << std::endl;
 #endif
 
 #if defined(YATE_WINDOWS) && NDEBUG
 	FreeConsole();
 #endif
-
+	
 	std::string path {};
 	int terminalWidth = 0;
 	int terminalHeight = 0;
@@ -47,6 +48,7 @@ int main(int argc, char** argv) {
 	bool autoIndent = true;
 	for(int i = 1; i < argc; i++) {
 		std::string arg = argv[i];
+		std::clog << arg << std::endl;
 		std::stringstream argStream {argv[i]};
 		auto match = [&](std::string_view s) { return (arg.rfind(s.data(), 0) == 0); };
 		
@@ -112,13 +114,19 @@ Misc:
 	
 	
 	Editor editor { path, tabSize, autoIndent };
+	int action;
 	
 	while(editor.isAlive()) {
 		editor.draw();
-		editor.getInput();
+		action = editor.getInput();
+		if (action == -1) break;
 	}
 	
 	endwin();
+	
+	if (action == -1) {
+		std::cout << "Error reading input (stdin was -1)\nNOTE: piping doesn't work\n";
+	}	
 	
 	return 0;
 }
