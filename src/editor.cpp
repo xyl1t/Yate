@@ -120,7 +120,6 @@ int Editor::getInput() {
 			auto chars = getCharsBeforeFirstCharacter(); 
 			put(currentAction);
 			
-			setCaretLocation(0, caret.y);
 			for (auto currentAction : chars) {
 				put(currentAction);
 			}
@@ -316,7 +315,7 @@ void Editor::put(int ch, bool record) {
 void Editor::newLine() {
 	file.newLine();
 	moveDown();
-	setCaretLocation(0, caret.y);
+	setCaretLocation(0, caret.y, true);
 }
 void Editor::deleteCharL(bool record) {
 	try {

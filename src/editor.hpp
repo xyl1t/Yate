@@ -111,11 +111,12 @@ public:
 	inline int getTextEditorHeight() const {
 		return getmaxy(stdscr) - 2;
 	}
-	inline void setCaretLocation(int x, int y) {
+	inline void setCaretLocation(int x, int y, bool resetSavedX = false) {
 		caret.y = std::clamp(y, 0, (int)file.linesAmount() - 1);
 		if(x == caret.x) {
 			if (getVirtualLineLength() < caret.savedX) {
 				caret.x = getVirtualLineLength();
+				if (resetSavedX) caret.savedX = x;
 				file.setCaretLocation(file.getLineSize(), caret.y);
 			} else {
 				file.setCaretLocation(getFileCaretColumn(caret.savedX), caret.y);
