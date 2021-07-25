@@ -48,7 +48,6 @@ int main(int argc, char** argv) {
 	bool autoIndent = true;
 	for(int i = 1; i < argc; i++) {
 		std::string arg = argv[i];
-		std::clog << arg << std::endl;
 		std::stringstream argStream {argv[i]};
 		auto match = [&](std::string_view s) { return (arg.rfind(s.data(), 0) == 0); };
 		

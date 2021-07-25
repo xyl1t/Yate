@@ -104,7 +104,6 @@ int Editor::getInput() {
 	prevAction = currentAction;
 	currentAction = getch();
 	static int accumulation = 0;
-	std::clog << currentAction << " (" << currentAction << ")" << std::endl;
 	if (currentAction == -1) { // HACK: when does -1 actually come?
 		accumulation++;
 		if (accumulation > 1000) {
